@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compiler Visualizer | The Art of Code</title>
+
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+
+    <div class="noise-overlay"></div>
+    <div class="custom-cursor"></div>
+
+
+    <div class="aurora-container">
+        <div class="aurora-blob one"></div>
+        <div class="aurora-blob two"></div>
+        <div class="aurora-blob three"></div>
+    </div>
+
+
+    <header class="glass-nav">
+        <div class="container">
+            <a href="#" class="logo">
+                <span class="symbol">./</span>CompViz
+            </a>
+            <nav class="desktop-nav">
+
+                <a href="#hero" class="nav-link" data-hover>Home</a>
+                <a href="#features" class="nav-link" data-hover>Modules</a>
+                <a href="#about" class="nav-link" data-hover>About</a>
+            </nav>
+            <a href="#playground" class="cta-button">
+                <span>Launch App</span>
+                <i class="fa-solid fa-arrow-right-long"></i>
+            </a>
+            <div class="mobile-toggle">
+                <div class="bar top"></div>
+                <div class="bar bottom"></div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+
+        <section id="hero" class="hero">
+            <div class="container hero-grid">
+                <div class="hero-text">
+                    <span class="badge">v1.0.0 Alpha</span>
+                    <h1>Understand the <br> <span class="gradient-text">Machine's Mind.</span></h1>
+                    <p class="subtitle">
+                        Don't just write code. <strong>See it breathe.</strong> <br>
+                        A step-by-step visual journey from source code to binary execution.
+                    </p>
+                    <div class="cta-group">
+                        <button class="primary-btn magnetic-btn">
+                            Start Visualizing
+                        </button>
+                        <button class="secondary-btn magnetic-btn">
+                            <i class="fa-brands fa-github"></i> Source Code
+                        </button>
+                    </div>
+                </div>
+
+
+                <div class="hero-visual">
+                    <div class="terminal-window">
+                        <div class="terminal-header">
+                            <div class="buttons">
+                                <span class="close"></span>
+                                <span class="minimize"></span>
+                                <span class="expand"></span>
+                            </div>
+                            <div class="title">compiler_v1.c</div>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="line-numbers">
+                                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                            </div>
+
+                            <pre><code id="typewriter"></code><span class="cursor">|</span></pre>
+                        </div>
+                        <div class="compilation-status">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Ready to compile</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="features" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Deconstruct <span class="highlight">Everything.</span></h2>
+                    <p>Every phase of compilation, visualized in real-time.</p>
+                </div>
+
+                <div class="bento-grid">
+
+                    <div class="bento-card large tilt-card">
+                        <div class="card-icon"><i class="fa-solid fa-layer-group"></i></div>
+                        <h3>Lexical Analysis</h3>
+                        <p>Watch raw characters transform into meaningful tokens. We visualize the state machine in
+                            action.</p>
+                        <div class="mini-visual tokens-visual">
+                            <span class="token keyword">int</span>
+                            <span class="token id">main</span>
+                            <span class="token paren">()</span>
+                        </div>
+                    </div>
+
+
+                    <div class="bento-card medium tilt-card">
+                        <div class="card-icon"><i class="fa-solid fa-network-wired"></i></div>
+                        <h3>Syntax Trees (AST)</h3>
+                        <p>See the hierarchical structure of your logic.</p>
+                        <div class="mini-visual ast-visual">
+
+                            <div class="tree-node root"></div>
+                            <div class="tree-branch"></div>
+                            <div class="tree-node left"></div>
+                            <div class="tree-node right"></div>
+                        </div>
+                    </div>
+
+
+                    <div class="bento-card medium tilt-card">
+                        <div class="card-icon"><i class="fa-solid fa-check-double"></i></div>
+                        <h3>Semantic Checks</h3>
+                        <p>Type checking and scope resolution visualized.</p>
+                    </div>
+
+
+                    <div class="bento-card small tilt-card">
+                        <div class="card-icon"><i class="fa-solid fa-bolt"></i></div>
+                        <h3>Optimization</h3>
+                        <p>Dead code elimination.</p>
+                    </div>
+
+
+                    <div class="bento-card small tilt-card">
+                        <div class="card-icon"><i class="fa-solid fa-microchip"></i></div>
+                        <h3>Assembly</h3>
+                        <p>Generate X86/MIPS.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <div class="container footer-flex">
+            <div class="brand">
+                <h4>CompViz</h4>
+                <p>Crafted with <i class="fa-solid fa-heart" style="color: var(--accent);"></i> by TechieAman.</p>
+            </div>
+            <div class="links">
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+                <a href="#">Twitter</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
