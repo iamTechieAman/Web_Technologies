@@ -1,0 +1,33 @@
+name: Fetch DSA Problems
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  update-problems:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Fetch Latest Problems
+        run: npx tsx scripts/fetch-problems.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Commit and Push
+        run: |
+          git config --global user.name 'AlgoForge Bot'
+          git config --global user.email 'bot@algoforge.com'
+          git add src/data/problems.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update problems library" && git push)

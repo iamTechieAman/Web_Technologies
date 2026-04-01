@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 24 9.8% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --radius: 1rem;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+  
+  body {
+    background-color: #050507;
+    color: hsl(var(--foreground));
+    @apply antialiased selection:bg-orange-500/30;
+    font-feature-settings: "cv11", "ss01";
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+
+  .glass-card {
+    @apply bg-white/[0.02] backdrop-blur-md border border-white/[0.05] rounded-3xl shadow-xl;
+  }
+
+  .glass-pill {
+    @apply bg-black/40 backdrop-blur-2xl border border-white/10 rounded-full shadow-2xl;
+  }
+
+  .premium-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-white via-white/90 to-white/40;
+  }
+
+  .orange-glow {
+    @apply shadow-[0_0_50px_-12px_rgba(249,115,22,0.5)];
+  }
+
+  .neon-blue-glow {
+    @apply shadow-[0_0_50px_-12px_rgba(59,130,246,0.5)];
+  }
+
+  .neon-border {
+    @apply border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)];
+  }
+
+  .neon-text-orange {
+    @apply text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)];
+  }
+
+  .neon-text-blue {
+    @apply text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)];
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full border-4 border-transparent bg-clip-padding hover:bg-white/20 transition-all;
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.98); }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s infinite ease-in-out;
+}
+
+.typewriter-cursor::after {
+  content: '|';
+  @apply animate-pulse ml-0.5 text-orange-500 font-bold;
+}
