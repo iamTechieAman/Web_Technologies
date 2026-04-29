@@ -10,8 +10,8 @@ interface PageProps {
   };
 }
 
-// Generate static paths for all scraped problems
-export async function generateStaticPaths() {
+// Generate static params for all scraped problems
+export async function generateStaticParams() {
   return (problems as any[]).map((p) => ({
     slug: p.titleSlug || p.slug,
   }));
