@@ -4,6 +4,10 @@ import OpenAI from 'openai';
 const client = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY || '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',
+  defaultHeaders: {
+    'HTTP-Referer': 'https://codevisualizer.dev',
+    'X-Title': 'CodeVisualizer',
+  }
 });
 
 export async function POST(req: NextRequest) {
