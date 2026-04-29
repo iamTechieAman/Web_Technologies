@@ -6,7 +6,7 @@ import {
   MoreVertical, Edit2, Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { FileNode } from '@/hooks/useFileSystem';
+import type { FileNode } from '@/types';
 import problemsData from '@/data/problems.json';
 import { useRouter } from 'next/navigation';
 

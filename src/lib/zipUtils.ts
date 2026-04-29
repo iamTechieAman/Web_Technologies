@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { FileNode } from '@/hooks/useFileSystem';
+import { FileNode } from '@/types';
 
 export async function downloadProjectAsZip(files: FileNode[], projectName: string) {
   const zip = new JSZip();

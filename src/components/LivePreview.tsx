@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { RefreshCw, ExternalLink, Globe, Smartphone, Monitor, ShieldCheck, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { FileNode } from '@/hooks/useFileSystem';
+import { FileNode } from '@/types';
 
 interface LivePreviewProps {
   files: FileNode[];
