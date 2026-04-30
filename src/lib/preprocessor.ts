@@ -7,9 +7,8 @@ export function preprocessCode(code: string, language: string): string {
 
   switch (language) {
     case 'java': {
-      // 1. Remove package declarations (e.g., "package some.name;")
-      // These cause class naming mismatches on Piston/Judge0
-      processed = processed.replace(/^package\s+[\w.]+;\s*$/gm, '');
+      // 1. Remove package declarations (anywhere in the file, with any whitespace)
+      processed = processed.replace(/^\s*package\s+[\w.]+;\s*$/gm, '');
 
       // 2. Rename the first public class to 'Main'
       const publicClassRegex = /public\s+class\s+([a-zA-Z_$][a-zA-Z\d_$]*)/;
@@ -17,25 +16,21 @@ export function preprocessCode(code: string, language: string): string {
       if (match) {
         const originalClassName = match[1];
         if (originalClassName !== 'Main') {
-          // Replace only the first occurrence of the public class declaration
-          // to avoid accidentally renaming other strings or references.
           processed = processed.replace(
             new RegExp(`public\\s+class\\s+${originalClassName}`),
             'public class Main'
           );
-          
-          // Replace constructors (heuristic: \bOriginalName\b followed by optional whitespace and '(')
           processed = processed.replace(
             new RegExp(`\\b${originalClassName}\\s*\\(`, 'g'),
             'Main('
           );
         }
       } else if (!processed.includes('class Main')) {
-        // If no Main class exists, wrap the code snippet
+        // If no Main class exists, wrap it
         if (!processed.includes('public static void main')) {
-           processed = `public class Main {\n    public static void main(String[] args) {\n        ${processed.split('\n').join('\n        ')}\n    }\n}`;
+           processed = `import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        ${processed.split('\n').join('\n        ')}\n    }\n}`;
         } else {
-           processed = `public class Main {\n    ${processed.split('\n').join('\n    ')}\n}`;
+           processed = `import java.util.*;\n\npublic class Main {\n    ${processed.split('\n').join('\n    ')}\n}`;
         }
       }
       break;
@@ -43,7 +38,7 @@ export function preprocessCode(code: string, language: string): string {
 
     case 'cpp': {
       if (!processed.includes('#include <iostream>')) {
-        processed = `#include <iostream>\nusing namespace std;\n\n${processed}`;
+        processed = `#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <map>\nusing namespace std;\n\n${processed}`;
       }
       if (!processed.includes('int main') && !processed.includes('void main')) {
         processed = `${processed}\n\nint main() {\n    return 0;\n}`;
@@ -53,7 +48,7 @@ export function preprocessCode(code: string, language: string): string {
 
     case 'c': {
       if (!processed.includes('#include <stdio.h>')) {
-        processed = `#include <stdio.h>\n#include <stdlib.h>\n\n${processed}`;
+        processed = `#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <math.h>\n\n${processed}`;
       }
       if (!processed.includes('int main') && !processed.includes('void main')) {
         processed = `${processed}\n\nint main() {\n    return 0;\n}`;

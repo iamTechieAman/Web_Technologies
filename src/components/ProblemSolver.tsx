@@ -49,7 +49,7 @@ export default function ProblemSolver({ language, onSelectProblem }: ProblemSolv
               className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-800 last:border-0"
             >
               <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{p.title}</div>
-              <div className="text-xs text-gray-400 mt-0.5">{p.tags.join(', ')} • {p.difficulty}</div>
+              <div className="text-xs text-gray-400 mt-0.5">{(p.tags || p.topicTags?.map(t => t.name) || []).join(', ')} • {p.difficulty}</div>
             </button>
           ))}
         </div>

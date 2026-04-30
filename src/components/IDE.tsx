@@ -85,13 +85,28 @@ export default function IDE({ initialProblem }: IDEProps) {
       setIsTerminalOpen(true);
       return;
     }
-    
+
+    // console.log('[UI/IDE] stdin value before run:', JSON.stringify(stdin));
+
     setBottomTab('output');
     setIsTerminalOpen(true);
-    
+
     const res = await run(code, language as SupportedLanguage, stdin);
     player.setCurrentStep(0);
-    setActiveRightTab('visualizer');
+
+    // Switch to AI if execution had an input-related error
+    if (!res.success) {
+      const errMsg = (res.error || res.run?.stderr || '').toLowerCase();
+      const isInputErr =
+        errMsg.includes('nosuchelementexception') ||
+        errMsg.includes('inputmismatchexception') ||
+        errMsg.includes('eoferror') ||
+        errMsg.includes('input required');
+      if (isInputErr) setActiveRightTab('ai');
+      else setActiveRightTab('visualizer');
+    } else {
+      setActiveRightTab('visualizer');
+    }
   };
 
   const handleCommand = async (cmd: string): Promise<string> => {
@@ -139,6 +154,28 @@ export default function IDE({ initialProblem }: IDEProps) {
     };
     window.addEventListener('codevisualizer-command', handleCommand);
     return () => window.removeEventListener('codevisualizer-command', handleCommand);
+  }, [handleRun]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Run: Ctrl+Enter or Cmd+Enter
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handleRun();
+      }
+      // Save: Ctrl+S or Cmd+S
+      if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        // logic for save could go here if needed, fs.updateNodeContent is auto-saving to localforage
+      }
+      // Command Palette: Ctrl+Shift+P or Cmd+Shift+P
+      if (e.key === 'p' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+        e.preventDefault();
+        setIsPaletteOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleRun]);
 
   const handleRename = (id: string, currentName: string) => {
@@ -197,9 +234,9 @@ export default function IDE({ initialProblem }: IDEProps) {
         actions={paletteActions} 
       />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Activity Bar (Slim Left Sidebar) */}
-        <div className="w-12 bg-[#0a0a0c] border-r border-gray-800/50 flex flex-col items-center py-4 gap-4 z-20">
+      <div className="flex-1 flex overflow-hidden flex-col md:flex-row">
+        {/* Activity Bar (Slim Left Sidebar) - Hidden on extra small mobile */}
+        <div className="hidden md:flex w-12 bg-[#0a0a0c] border-r border-gray-800/50 flex-col items-center py-4 gap-4 z-20">
           <button 
             onClick={() => setActiveTab('ide')}
             className={cn("p-2 rounded-lg transition-all group relative", activeTab === 'ide' ? "bg-orange-500/10 text-orange-500" : "text-gray-600 hover:text-gray-400")}
@@ -236,7 +273,7 @@ export default function IDE({ initialProblem }: IDEProps) {
             ) : (
               <PanelGroup direction="horizontal" className="flex-1">
                 {/* File Explorer Panel */}
-                <Panel defaultSize={15} minSize={10} collapsible className="border-r border-gray-800/50">
+                <Panel defaultSize={15} minSize={10} collapsible className="hidden md:block border-r border-gray-800/50">
                   <FileExplorer 
                     files={fs.files} 
                     activeFileId={tabs.activeTabId}
@@ -365,6 +402,7 @@ export default function IDE({ initialProblem }: IDEProps) {
                           activeFileCode={code}
                           activeFileName={activeFile?.name}
                           currentStepExplanation={enhancedSteps[player.currentStep]?.explanation}
+                          lastResult={result}
                         />
                       )}
                     </div>

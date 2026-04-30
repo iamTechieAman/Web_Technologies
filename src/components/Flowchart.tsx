@@ -22,7 +22,8 @@ interface FlowchartProps {
 // Custom Node component for premium aesthetics
 const CodeNode = ({ data }: any) => {
   const isDecision = data.type === 'decision';
-  const isIO = data.type === 'io';
+  const isIO = data.type === 'output' || data.type === 'input';
+  const isLoop = data.type === 'loop';
 
   return (
     <motion.div 
@@ -34,8 +35,9 @@ const CodeNode = ({ data }: any) => {
       className={cn(
         "px-5 py-3 rounded-2xl border bg-[#0d0d10] shadow-2xl transition-all duration-500 min-w-[180px] relative",
         data.isActive ? "ring-4 ring-orange-500/10 shadow-orange-500/20" : "",
-        isDecision ? "rounded-none rotate-45" : "", // Diamond-ish for decision
-        isIO ? "skew-x-12" : "" // Parallelogram-ish for I/O
+        isDecision ? "rounded-none rotate-45" : "", // Diamond for decision
+        isLoop ? "border-dashed border-orange-500/40" : "", // Dashed for loop
+        isIO ? "skew-x-12" : "" // Parallelogram for I/O
       )}
     >
       {/* Handles */}

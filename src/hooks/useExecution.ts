@@ -10,53 +10,63 @@ export function useExecution() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const run = useCallback(async (code: string, language: SupportedLanguage, stdin?: string): Promise<ExecutionResult> => {
-    setLoading(true);
-    setError(null);
-    setResult(null);
+  const run = useCallback(
+    async (
+      code: string,
+      language: SupportedLanguage,
+      stdin?: string,
+    ): Promise<ExecutionResult> => {
+      setLoading(true);
+      setError(null);
+      setResult(null);
 
-    // 1. Generate visualizer steps (Synchronous simulation)
-    // Always use preprocessed code for visualization to hide boilerplate
-    const effectiveCode = preprocessCode(code, language);
-    const visualSteps = generateExecutionSteps(effectiveCode, language, stdin);
-    setSteps(visualSteps);
+      // Normalise stdin early — empty string, never undefined
+      const normalisedStdin = (stdin ?? '').trimEnd();
 
-    try {
-      // Temporary log for debugging stdin flow
-      // console.log('Sending stdin:', stdin);
-      
-      const res = await fetch('/api/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language, code, stdin }), // Sending original code, API handles preprocessing
-      });
+      // console.log('[hook/useExecution] language:', language);
+      // console.log('[hook/useExecution] stdin being sent:', JSON.stringify(normalisedStdin));
 
-      if (!res.ok) {
-        throw new Error(`Execution failed: ${res.statusText}`);
+      // 1. Generate visual steps from preprocessed code (synchronous, client-side)
+      const effectiveCode = preprocessCode(code, language);
+      const visualSteps = generateExecutionSteps(effectiveCode, language, normalisedStdin);
+      setSteps(visualSteps);
+
+      try {
+        const res = await fetch('/api/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // Send original code — API route/execution.ts handles preprocessing
+          body: JSON.stringify({ language, code, stdin: normalisedStdin }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`Execution service returned ${res.status}: ${res.statusText}`);
+        }
+
+        const data: ExecutionResult = await res.json();
+        setResult(data);
+
+        if (!data.success) {
+          setError(data.error || 'Execution failed');
+        }
+
+        setLoading(false);
+        return data;
+      } catch (err: any) {
+        // console.error('[hook/useExecution] Fetch error:', err);
+        const fallback: ExecutionResult = {
+          success: false,
+          error: err.message || 'Network error during execution',
+          engine: 'piston',
+        };
+        setResult(fallback);
+        setError(fallback.error ?? null);
+        setLoading(false);
+        return fallback;
       }
-
-      const data: ExecutionResult = await res.json();
-      setResult(data);
-
-      if (!data.success) {
-        setError(data.error || 'Execution failed');
-      }
-
-      setLoading(false);
-      return data;
-    } catch (err: any) {
-      // console.error('[useExecution] Error:', err);
-      const fallback: ExecutionResult = {
-        success: false,
-        error: err.message || 'Execution error',
-        engine: 'piston',
-      };
-      setResult(fallback);
-      setError(fallback.error || 'Error');
-      setLoading(false);
-      return fallback;
-    }
-  }, []);
+    },
+    [],
+  );
 
   const reset = useCallback(() => {
     setResult(null);

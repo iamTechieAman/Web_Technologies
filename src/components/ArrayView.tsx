@@ -13,10 +13,12 @@ export default function ArrayView({ variables }: ArrayViewProps) {
 
   if (!arrayEntry) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40">
-        <Database size={48} className="text-gray-800 mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No arrays found in scope</p>
-        <p className="text-[9px] text-gray-700 mt-2">Initialize an array to see its structural transformation.</p>
+      <div className="h-full flex flex-col items-center justify-center text-center p-8">
+        <Database size={48} className="text-gray-800 mb-4 opacity-40" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No Array in Scope</p>
+        <p className="text-[9px] text-gray-600 mt-2 max-w-[200px] leading-relaxed">
+          Declare an array variable (e.g. <code className="text-orange-500">int[] arr = {'{1,2,3}'}</code>) and run your code to see a visual bar chart here.
+        </p>
       </div>
     );
   }

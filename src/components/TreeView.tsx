@@ -70,10 +70,14 @@ export default function TreeView({ variables }: TreeViewProps) {
 
   if (!treeEntry || graphData.nodes.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40">
-        <GitBranch size={48} className="text-gray-800 mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No tree structure found</p>
-        <p className="text-[9px] text-gray-700 mt-2">Objects with `left`, `right`, or `children` will trigger this view.</p>
+      <div className="h-full flex flex-col items-center justify-center text-center p-8">
+        <GitBranch size={48} className="text-gray-800 mb-4 opacity-40" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No Tree Structure Found</p>
+        <p className="text-[9px] text-gray-600 mt-2 max-w-[220px] leading-relaxed">
+          Create an object with <code className="text-orange-500">left</code>,{' '}
+          <code className="text-orange-500">right</code>, or{' '}
+          <code className="text-orange-500">children</code> fields to visualise a tree graph here.
+        </p>
       </div>
     );
   }

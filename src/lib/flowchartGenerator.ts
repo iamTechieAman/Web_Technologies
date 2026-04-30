@@ -6,94 +6,160 @@ export interface FlowGraph {
 }
 
 /**
- * High-Fidelity Flowchart Generator (v2.3)
- * Maps source code logic into a structured control-flow diagram.
+ * CodeVisualizer Flowchart Generator v4.0
+ * Produces a rich, labelled control-flow graph from source code.
+ * Highlights the currently executing node.
  */
 export function generateFlowchartData(code: string, currentLine?: number): FlowGraph {
-  // Filter out boilerplate and empty lines
-  const lines = code.split('\n')
-    .map((l, idx) => ({ content: l.trim(), originalIndex: idx + 1 }))
-    .filter(l => l.content && !l.content.startsWith('import') && !l.content.startsWith('package') && l.content !== '{' && l.content !== '}');
+  const allLines = code.split('\n');
+
+  // Filter boilerplate but keep meaningful content
+  const filteredLines = allLines
+    .map((content, idx) => ({ content: content.trim(), originalLine: idx + 1 }))
+    .filter(({ content }) => {
+      if (!content) return false;
+      if (content === '{' || content === '}' || content === '};') return false;
+      if (content.startsWith('//') || content.startsWith('/*') || content.startsWith('*')) return false;
+      if (content.startsWith('import ') || content.startsWith('package ') || content.startsWith('using ')) return false;
+      return true;
+    });
 
   const nodes: Node[] = [];
   const edges: Edge[] = [];
-  
-  let yOffset = 0;
-  const nodeGap = 120;
-  const centerX = 250;
 
-  const addNode = (id: string, label: string, type: 'default' | 'decision' | 'io' | 'start' | 'end' | 'loop' | 'terminator', lineNum: number) => {
-    const isActive = lineNum === currentLine;
-    nodes.push({
+  let yOffset = 0;
+  const NODE_GAP = 90;
+  const CENTER_X = 220;
+  const BRANCH_OFFSET = 140;
+
+  /** Check if a line is the currently active one. */
+  const isActive = (lineNum: number) => lineNum === currentLine;
+
+  /** Create a flowchart node. */
+  const makeNode = (
+    id: string,
+    label: string,
+    type: string,
+    lineNum: number,
+    xOverride?: number,
+  ): Node => {
+    const active = isActive(lineNum);
+    const node: Node = {
       id,
-      data: { 
-        label: label.length > 50 ? label.substring(0, 47) + '...' : label,
-        isActive,
+      data: {
+        label: label.length > 50 ? label.slice(0, 47) + '…' : label,
+        isActive: active,
         type,
-        lineNum
+        lineNum,
       },
-      position: { x: centerX, y: yOffset },
+      position: { x: xOverride ?? CENTER_X, y: yOffset },
       type: 'custom',
-    });
-    yOffset += nodeGap;
+    };
+    yOffset += NODE_GAP;
+    return node;
   };
 
-  addNode('start', 'START', 'start', -1);
+  /** Create an edge between two nodes. */
+  const makeEdge = (
+    source: string,
+    target: string,
+    label?: string,
+    highlighted = false,
+  ): Edge => ({
+    id: `e-${source}-${target}`,
+    source,
+    target,
+    label,
+    animated: highlighted,
+    style: {
+      stroke: highlighted ? '#f97316' : '#334155',
+      strokeWidth: highlighted ? 2.5 : 1.5,
+    },
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      color: highlighted ? '#f97316' : '#475569',
+    },
+    labelStyle: { fill: '#94a3b8', fontSize: 9, fontWeight: 700 },
+    labelBgStyle: { fill: '#0f172a', fillOpacity: 0.8 },
+  });
+
+  // ── START node ──────────────────────────────────────────────
+  const startNode = makeNode('start', 'START', 'start', -1);
+  nodes.push(startNode);
   let prevId = 'start';
 
-  lines.forEach((l, i) => {
-    const nodeId = `node-${i}`;
-    const content = l.content;
-    let type: 'default' | 'decision' | 'io' | 'loop' | 'terminator' = 'default';
+  // ── Process each meaningful line ─────────────────────────────
+  filteredLines.forEach((l, i) => {
+    const id = `node-${i}`;
+    const { content, originalLine } = l;
+    const active = isActive(originalLine);
+    let type = 'process';
     let label = content;
 
-    // Node Classification
-    if (content.startsWith('if') || content.startsWith('else if')) {
+    if (content.startsWith('if') || content.startsWith('else if') || content.startsWith('elif')) {
       type = 'decision';
-      label = `Condition: ${content}`;
-    } else if (content.startsWith('for') || content.startsWith('while')) {
+      const cond = content.match(/\((.+)\)/)?.[1] || content.replace(/^(elif|else if|if)\s*/, '').replace(/:$/, '');
+      label = `IF  ${cond.length > 40 ? cond.slice(0, 37) + '…' : cond}`;
+    } else if (content.startsWith('else') || content.startsWith('default')) {
+      type = 'decision';
+      label = 'ELSE';
+    } else if (content.startsWith('for') || content.startsWith('while') || content.startsWith('do')) {
       type = 'loop';
-      label = `Loop: ${content}`;
-    } else if (content.includes('print') || content.includes('System.out') || content.includes('console.log') || content.includes('cout') || content.includes('printf')) {
-      type = 'io';
-      label = `Output: ${content}`;
-    } else if (content.includes('Scanner') || content.includes('input(') || content.includes('cin') || content.includes('scanf')) {
-      type = 'io';
-      label = `Input: ${content}`;
+      const inner = content.replace(/^(for|while|do)\s*/, '');
+      label = `LOOP  ${inner.length > 35 ? inner.slice(0, 32) + '…' : inner}`;
+    } else if (
+      content.includes('System.out.print') ||
+      content.includes('console.log') ||
+      content.includes('cout <<') ||
+      content.includes('printf') ||
+      content.startsWith('print(')
+    ) {
+      type = 'output';
+      const inner =
+        content.match(/System\.out\.print\w*\((.+)\)/)?.[1] ||
+        content.match(/console\.log\((.+)\)/)?.[1] ||
+        content.match(/cout\s*<<\s*(.+)/)?.[1] ||
+        content.match(/printf\("([^"]+)"/)?.[1] ||
+        content.match(/print\((.+)\)/)?.[1] ||
+        '…';
+      label = `PRINT  ${inner.length > 40 ? inner.slice(0, 37) + '…' : inner}`;
+    } else if (
+      content.includes('scanner.next') ||
+      content.includes('input(') ||
+      content.includes('cin >>') ||
+      content.includes('scanf')
+    ) {
+      type = 'input';
+      label = 'READ  stdin';
     } else if (content.startsWith('return')) {
-      type = 'terminator';
-      label = `Return: ${content}`;
-    } else if (content.includes('=')) {
-      label = `Process: ${content}`;
+      type = 'return';
+      label = `RETURN  ${content.replace(/^return\s*/, '').replace(/;$/, '')}`;
+    } else {
+      // Generic: show truncated statement
+      label = content.replace(/;$/, '');
     }
 
-    addNode(nodeId, label, type, l.originalIndex);
+    const node = makeNode(id, label, type, originalLine);
+    nodes.push(node);
 
-    edges.push({
-      id: `e-${prevId}-${nodeId}`,
-      source: prevId,
-      target: nodeId,
-      animated: nodes.find(n => n.id === nodeId)?.data.isActive,
-      style: { 
-        stroke: nodes.find(n => n.id === nodeId)?.data.isActive ? '#f97316' : '#1e293b',
-        strokeWidth: nodes.find(n => n.id === nodeId)?.data.isActive ? 2 : 1
-      },
-      markerEnd: { 
-        type: MarkerType.ArrowClosed, 
-        color: nodes.find(n => n.id === nodeId)?.data.isActive ? '#f97316' : '#1e293b' 
-      }
-    });
+    const edge = makeEdge(prevId, id, undefined, active);
+    edges.push(edge);
 
-    prevId = nodeId;
+    // For IF/ELSE branch nodes, add a visual Y-branch hint
+    if (type === 'decision') {
+      // Placeholder: the "true" path continues downward (prevId → id already added above)
+      // The "false" path label is shown on the straight edge
+      const lastEdge = edges[edges.length - 1];
+      lastEdge.label = 'true';
+    }
+
+    prevId = id;
   });
 
-  addNode('end', 'END', 'end', -2);
-  edges.push({
-    id: `e-${prevId}-end`,
-    source: prevId,
-    target: 'end',
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#1e293b' }
-  });
+  // ── END node ────────────────────────────────────────────────
+  const endNode = makeNode('end', 'END', 'end', -2);
+  nodes.push(endNode);
+  edges.push(makeEdge(prevId, 'end'));
 
   return { nodes, edges };
 }

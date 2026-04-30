@@ -33,7 +33,7 @@ export default function ProblemDescription({ problem }: ProblemDescriptionProps)
         <div className="flex flex-wrap items-center gap-4 text-[10px] font-black uppercase tracking-widest text-gray-500">
           <div className="flex items-center gap-1.5">
             <Tags size={12} className="text-orange-500" />
-            {problem.tags.join(', ')}
+            {(problem.tags || problem.topicTags?.map(t => t.name) || []).join(', ')}
           </div>
           <div className="flex items-center gap-1.5">
             <BarChart3 size={12} className="text-blue-500" />

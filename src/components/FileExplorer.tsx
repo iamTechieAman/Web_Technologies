@@ -64,6 +64,11 @@ export default function FileExplorer({
               !isActive && "text-gray-400"
             )}
             style={{ paddingLeft: `${(level + 1) * 12}px` }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              // Trigger the dropdown menu via some state if we wanted to be fancy, 
+              // but for now, we'll ensure the existing menu is accessible.
+            }}
             onClick={() => node.type === 'folder' ? toggleExpand(node.id) : onFileClick(node.id)}
           >
             {node.type === 'folder' ? (

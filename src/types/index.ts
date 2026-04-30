@@ -34,13 +34,15 @@ export interface TestCase {
 }
 
 export interface Problem {
-  id: string;
+  id?: string;
   slug: string;
+  titleSlug?: string;
   title: string;
   description?: string;
   descriptionHtml?: string;
-  difficulty: Difficulty;
-  tags: string[];
+  difficulty: string;
+  tags?: string[];
+  topicTags?: { name: string; slug: string }[];
   companies?: string[];
   timeComplexity?: string;
   spaceComplexity?: string;

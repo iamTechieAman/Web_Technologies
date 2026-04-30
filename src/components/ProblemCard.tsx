@@ -52,7 +52,7 @@ export default function ProblemCard({ problem }: ProblemCardProps) {
         <div className="flex items-center gap-2">
           <Tag size={14} className="text-gray-400" />
           <div className="flex flex-wrap gap-1">
-            {problem.tags.slice(0, 2).map(t => (
+            {(problem.tags || problem.topicTags?.map(t => t.name) || []).slice(0, 2).map(t => (
               <span key={t} className="text-xs text-blue-600 dark:text-blue-400">
                 #{t}
               </span>

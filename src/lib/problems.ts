@@ -17,7 +17,7 @@ export function getProblemBySlug(slug: string): Problem | undefined {
   const decodedSlug = decodeURIComponent(slug).toLowerCase();
   return problems.find((p) => 
     p.slug.toLowerCase() === decodedSlug || 
-    p.id.toLowerCase() === decodedSlug ||
+    p.id?.toLowerCase() === decodedSlug ||
     p.slug === slug
   );
 }

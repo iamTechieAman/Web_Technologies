@@ -1,6 +1,6 @@
-import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
 const LEETCODE_GRAPHQL_URL = 'https://leetcode.com/graphql';
 
@@ -14,7 +14,7 @@ async function fetchProblemList(limit = 100, skip = 0) {
         filters: $filters
       ) {
         totalNum
-        questions {
+        data {
           title
           titleSlug
           difficulty
@@ -36,16 +36,23 @@ async function fetchProblemList(limit = 100, skip = 0) {
     filters: {}
   };
 
+  const headers = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Referer': 'https://leetcode.com/problemset/all/'
+  };
+
   try {
-    const res = await axios.post(LEETCODE_GRAPHQL_URL, { query, variables });
+    const res = await axios.post(LEETCODE_GRAPHQL_URL, { query, variables }, { headers });
     return res.data.data.questionList;
   } catch (err) {
-    console.error('Error fetching problem list:', err);
+    console.error('Error fetching problem list:', err.message);
+    if (err.response) console.error('Response data:', err.response.data);
     return null;
   }
 }
 
-async function fetchProblemDetails(titleSlug: string) {
+async function fetchProblemDetails(titleSlug) {
   const query = `
     query questionData($titleSlug: String!) {
       question(titleSlug: $titleSlug) {
@@ -66,12 +73,17 @@ async function fetchProblemDetails(titleSlug: string) {
   `;
 
   const variables = { titleSlug };
+  const headers = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Referer': `https://leetcode.com/problems/${titleSlug}/`
+  };
 
   try {
-    const res = await axios.post(LEETCODE_GRAPHQL_URL, { query, variables });
+    const res = await axios.post(LEETCODE_GRAPHQL_URL, { query, variables }, { headers });
     return res.data.data.question;
   } catch (err) {
-    console.error(`Error fetching details for ${titleSlug}:`, err);
+    console.error(`Error fetching details for ${titleSlug}:`, err.message);
     return null;
   }
 }
@@ -79,13 +91,10 @@ async function fetchProblemDetails(titleSlug: string) {
 async function main() {
   console.log('🚀 Starting LeetCode problem scraper...');
   
-  const allProblems: any[] = [];
-  const limit = 100;
+  const allProblems = [];
+  const limit = 50;
   let skip = 0;
   let total = 1;
-
-  // For demo/dev purposes, we'll fetch the first 300 problems
-  // In production, we'd loop until skip >= total
   const MAX_PROBLEMS = 50; 
 
   while (skip < total && allProblems.length < MAX_PROBLEMS) {
@@ -94,7 +103,7 @@ async function main() {
     if (!listData) break;
 
     total = listData.totalNum;
-    const questions = listData.questions.filter((q: any) => !q.isPaidOnly);
+    const questions = listData.data.filter(q => !q.isPaidOnly);
 
     for (const q of questions) {
       if (allProblems.length >= MAX_PROBLEMS) break;
@@ -106,10 +115,9 @@ async function main() {
           ...q,
           ...details,
           descriptionHtml: details.content,
-          slug: q.titleSlug // Ensure slug is present
+          slug: q.titleSlug
         });
       }
-      // Delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 50));
     }
 

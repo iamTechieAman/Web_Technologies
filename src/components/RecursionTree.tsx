@@ -1,7 +1,6 @@
-'use client';
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, Terminal, ChevronDown, ArrowRight, Zap } from 'lucide-react';
+import React, { useMemo, useRef, useEffect } from 'react';
+import ForceGraph2D from 'react-force-graph-2d';
+import { Share2, Network, Maximize, MousePointer2, Info, Zap } from 'lucide-react';
 import { ExecutionStep } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -11,127 +10,106 @@ interface RecursionTreeProps {
 }
 
 export default function RecursionTree({ steps, currentStep }: RecursionTreeProps) {
-  const step = steps[currentStep];
-  const callStack = step?.callStack || [];
+  const graphRef = useRef<any>(null);
+  const callStack = steps[currentStep]?.callStack || [];
+
+  const graphData = useMemo(() => {
+    if (callStack.length === 0) return { nodes: [], links: [] };
+
+    const nodes: any[] = [];
+    const links: any[] = [];
+
+    callStack.forEach((frame, i) => {
+      const nodeId = `frame-${i}`;
+      nodes.push({ 
+        id: nodeId, 
+        label: `${frame.functionName}(${frame.params})`,
+        isActive: i === callStack.length - 1,
+        depth: i
+      });
+
+      if (i > 0) {
+        links.push({ source: `frame-${i-1}`, target: nodeId });
+      }
+    });
+
+    return { nodes, links };
+  }, [callStack]);
+
+  const [mounted, setMounted] = React.useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (graphRef.current) {
+      graphRef.current.zoomToFit(400);
+    }
+  }, [graphData]);
 
   if (callStack.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40">
-        <div className="relative mb-6">
-          <Share2 size={64} className="text-gray-800" />
-          <motion.div 
-            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="absolute inset-0 bg-orange-500/20 blur-2xl rounded-full"
-          />
-        </div>
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">Call Stack Empty</p>
-        <p className="text-[9px] text-gray-700 mt-2 max-w-[200px]">Recursive function calls will create a visual tree of execution frames here.</p>
+      <div className="h-full flex flex-col items-center justify-center text-center p-8">
+        <Share2 size={48} className="text-gray-800 mb-4 opacity-40" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Call Stack Empty</p>
+        <p className="text-[9px] text-gray-600 mt-2 max-w-[220px] leading-relaxed">
+          Write a recursive function (e.g. fibonacci, factorial) and step through execution — the call tree will appear here.
+        </p>
       </div>
     );
   }
 
+  if (!mounted) return <div className="h-full bg-[#050507]" />;
+
   return (
-    <div className="h-full p-8 overflow-auto custom-scrollbar bg-black/20">
-      <div className="flex items-center justify-between mb-10">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-            <Zap size={20} className="text-orange-500 fill-orange-500/20" />
+    <div className="h-full relative flex flex-col group overflow-hidden bg-[#050507]">
+      {/* HUD */}
+      <div className="absolute top-4 left-4 z-10 space-y-2">
+        <div className="glass-panel px-4 py-2 rounded-xl flex items-center gap-3">
+          <div className="p-1.5 bg-orange-500/20 rounded-lg">
+            <Zap size={16} className="text-orange-500" />
           </div>
           <div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-white">Execution Frames</h3>
-            <p className="text-[9px] font-bold text-gray-600 uppercase tracking-tighter">Recursive Depth Analysis</p>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-white">Recursion Tree</h4>
+            <p className="text-[8px] font-bold text-gray-500 uppercase">Depth: {callStack.length}</p>
           </div>
-        </div>
-        <div className="glass-panel px-4 py-2 rounded-xl text-[10px] font-black text-orange-500 uppercase tracking-widest">
-          {callStack.length} Layers Deep
         </div>
       </div>
 
-      <div className="space-y-6 relative max-w-2xl mx-auto">
-        <div className="absolute left-7 top-10 bottom-10 w-px bg-gradient-to-b from-orange-500/50 via-orange-500/10 to-transparent" />
+      <div className="flex-1">
+        <ForceGraph2D
+          ref={graphRef}
+          graphData={graphData}
+          nodeLabel="label"
+          nodeColor={(node: any) => node.isActive ? '#f97316' : '#334155'}
+          linkColor={() => '#1e293b'}
+          nodeCanvasObject={(node: any, ctx, globalScale) => {
+            const label = node.label;
+            const fontSize = 12 / globalScale;
+            ctx.font = `${fontSize}px JetBrains Mono`;
+            
+            // Draw circle
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 6 / globalScale, 0, 2 * Math.PI, false);
+            ctx.fillStyle = node.isActive ? '#f97316' : '#1e293b';
+            ctx.fill();
+            ctx.strokeStyle = node.isActive ? '#fb923c' : '#334155';
+            ctx.lineWidth = 1.5 / globalScale;
+            ctx.stroke();
 
-        <AnimatePresence mode="popLayout">
-          {callStack.map((frame, i) => {
-            const isLast = i === callStack.length - 1;
-            return (
-              <motion.div
-                key={`${frame.functionName}-${i}`}
-                initial={{ opacity: 0, x: -30, y: 20 }}
-                animate={{ opacity: 1, x: 0, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, x: 20 }}
-                transition={{ type: "spring", damping: 20, stiffness: 100, delay: i * 0.05 }}
-                className="flex items-start gap-8 group"
-              >
-                <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center border-2 shrink-0 transition-all duration-500 relative z-10",
-                  isLast 
-                    ? "bg-orange-500 border-orange-400 shadow-2xl shadow-orange-500/40 scale-110 rotate-3" 
-                    : "bg-[#0d0d10] border-white/5 opacity-50 group-hover:opacity-100"
-                )}>
-                  {isLast && (
-                    <motion.div 
-                      layoutId="stack-pulse"
-                      className="absolute inset-0 bg-white/20 rounded-2xl animate-ping"
-                    />
-                  )}
-                  <span className={cn(
-                    "text-xs font-black",
-                    isLast ? "text-white" : "text-gray-500"
-                  )}>
-                    {i + 1}
-                  </span>
-                </div>
+            // Active glow
+            if (node.isActive) {
+              ctx.shadowColor = '#f97316';
+              ctx.shadowBlur = 10;
+            }
 
-                <div className={cn(
-                  "flex-1 glass-card p-5 relative transition-all duration-500",
-                  isLast ? "border-orange-500/50 orange-glow translate-x-2" : "border-white/5 opacity-40 hover:opacity-100"
-                )}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-2 h-2 rounded-full",
-                        isLast ? "bg-orange-500 animate-pulse" : "bg-gray-700"
-                      )} />
-                      <h4 className="text-xs font-black text-white uppercase tracking-widest">
-                        {frame.functionName}<span className="text-gray-600">(</span>
-                        <span className="text-orange-400/80">{frame.params}</span>
-                        <span className="text-gray-600">)</span>
-                      </h4>
-                    </div>
-                    {isLast && (
-                      <span className="text-[8px] font-black bg-orange-500 text-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                        Active
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-4 text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-                    <div className="flex items-center gap-1.5">
-                      <Terminal size={10} />
-                      Memory Context ID: <span className="text-gray-300">0x{Math.abs(frame.functionName.length * i * 1234).toString(16)}</span>
-                    </div>
-                    <div className="h-3 w-px bg-white/5" />
-                    <div className="flex items-center gap-1.5">
-                      <ArrowRight size={10} />
-                      Status: {isLast ? "Executing" : "Paused"}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+            // Text
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = node.isActive ? '#fff' : '#94a3b8';
+            ctx.fillText(label, node.x, node.y + (12 / globalScale));
+          }}
+          cooldownTicks={100}
+        />
       </div>
-
-      {callStack.length > 5 && (
-        <div className="mt-8 flex justify-center">
-          <div className="glass-pill px-4 py-2 flex items-center gap-2">
-            <ChevronDown size={14} className="text-gray-600 animate-bounce" />
-            <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Stack limit visualization threshold reached</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
