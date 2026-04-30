@@ -1,8 +1,11 @@
 'use client';
-import React from 'react';
-import { AlertCircle, Terminal, Hash, Code2 } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  AlertCircle, Keyboard, Clock, Cpu, Boxes,
+  ChevronDown, ChevronRight, Code2, Hash, Lightbulb,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { parseError } from '@/lib/errorParser';
+import { interpretError } from '@/lib/errorInterpreter';
 
 interface ErrorDisplayProps {
   stderr: string;
@@ -11,67 +14,93 @@ interface ErrorDisplayProps {
 }
 
 export default function ErrorDisplay({ stderr, language, sourceCode }: ErrorDisplayProps) {
-  const parsed = parseError(stderr, language);
-  
-  // Try to find the line of code that caused the error
-  const lines = sourceCode?.split('\n') || [];
-  const faultyLine = parsed.line && lines[parsed.line - 1] ? lines[parsed.line - 1].trim() : null;
+  const [showRaw, setShowRaw] = useState(false);
+  const err = interpretError(stderr, language);
+
+  // Find the source line
+  const faultyLine =
+    err.line && sourceCode
+      ? sourceCode.split('\n')[err.line - 1]?.trim() ?? null
+      : null;
+
+  // Choose icon based on error type
+  const Icon =
+    err.isInputError ? Keyboard :
+    err.title.includes('Time') ? Clock :
+    err.title.includes('Memory') ? Cpu :
+    err.title.includes('Module') ? Boxes :
+    AlertCircle;
+
+  const accentColor = err.isInputError
+    ? 'border-yellow-500/30 bg-yellow-500/5'
+    : 'border-red-500/20 bg-red-500/8';
+  const headerColor = err.isInputError
+    ? 'bg-yellow-500/10 border-yellow-500/20'
+    : 'bg-red-500/10 border-red-500/20';
+  const iconColor = err.isInputError ? 'text-yellow-500' : 'text-red-500';
+  const titleColor = err.isInputError ? 'text-yellow-500' : 'text-red-400';
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="bg-red-500/10 border border-red-500/20 rounded-2xl overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="bg-red-500/10 px-4 py-3 border-b border-red-500/20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle size={16} className="text-red-500" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-red-500">
-              {parsed.type || 'Execution Error'}
-            </span>
+    <div className={cn('rounded-2xl border overflow-hidden', accentColor)}>
+      {/* Header */}
+      <div className={cn('flex items-center justify-between px-4 py-3 border-b', headerColor)}>
+        <div className="flex items-center gap-2">
+          <Icon size={15} className={iconColor} />
+          <span className={cn('text-[10px] font-black uppercase tracking-widest', titleColor)}>
+            {err.title}
+          </span>
+        </div>
+        {err.line && (
+          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/30 rounded border border-white/10">
+            <Hash size={10} className="text-gray-500" />
+            <span className="text-[9px] font-bold text-gray-400">Line {err.line}</span>
           </div>
-          {parsed.line && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 rounded border border-red-500/20">
-              <Hash size={10} className="text-red-500/50" />
-              <span className="text-[9px] font-bold text-red-400">Line {parsed.line}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Message */}
-        <div className="p-4 space-y-4">
-          <p className="text-sm font-bold text-white leading-relaxed">
-            {parsed.message}
-          </p>
-
-          {/* Faulty Line Highlight */}
-          {faultyLine && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-gray-500">
-                <Code2 size={12} />
-                Problematic Line
-              </div>
-              <div className="bg-black/40 border border-gray-800 rounded-xl p-3 font-mono text-xs flex gap-4">
-                <span className="text-gray-700 select-none">{parsed.line}</span>
-                <span className="text-gray-300 break-all">{faultyLine}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Raw Trace (Collapsible if needed, showing by default) */}
-        <div className="px-4 py-3 bg-black/20 border-t border-red-500/10">
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-gray-600 mb-2">
-            <Terminal size={12} />
-            Raw Error Trace
-          </div>
-          <pre className="text-[10px] font-mono text-red-400/60 whitespace-pre-wrap break-all leading-tight">
-            {parsed.raw}
-          </pre>
-        </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-2 text-[9px] text-gray-600 italic bg-white/5 p-3 rounded-xl border border-gray-800/50">
-        <AlertCircle size={12} className="text-orange-500" />
-        Tip: Check for syntax errors, missing semicolons, or invalid variable references on the highlighted line.
+      <div className="p-4 space-y-4">
+        {/* Human-readable message */}
+        <p className="text-sm font-semibold text-white leading-relaxed">
+          {err.message}
+        </p>
+
+        {/* Faulty source line */}
+        {faultyLine && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-gray-500">
+              <Code2 size={11} />
+              Problematic line
+            </div>
+            <div className="bg-black/50 border border-red-500/20 rounded-xl p-3 font-mono text-xs flex gap-3 overflow-x-auto">
+              <span className="text-red-500/50 select-none shrink-0">{err.line}</span>
+              <span className="text-red-300/80 break-all">{faultyLine}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Fix suggestion */}
+        <div className="flex items-start gap-2.5 p-3 bg-orange-500/5 border border-orange-500/15 rounded-xl">
+          <Lightbulb size={14} className="text-orange-500 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-orange-200/80 leading-relaxed font-medium">
+            <span className="text-orange-500 font-black">Fix: </span>
+            {err.fix}
+          </p>
+        </div>
+
+        {/* Collapsible raw trace — no raw errors by default */}
+        <button
+          onClick={() => setShowRaw(v => !v)}
+          className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-gray-600 hover:text-gray-400 transition-colors"
+        >
+          {showRaw ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          {showRaw ? 'Hide' : 'Show'} raw error trace
+        </button>
+
+        {showRaw && (
+          <pre className="text-[9px] font-mono text-gray-600 whitespace-pre-wrap break-all leading-tight bg-black/30 rounded-xl p-3 border border-white/5 max-h-40 overflow-auto custom-scrollbar">
+            {err.raw}
+          </pre>
+        )}
       </div>
     </div>
   );
