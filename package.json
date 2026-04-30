@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "exec-server": "node server/exec-server.js",
+    "dev:full": "node server/exec-server.js & next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -46,6 +48,7 @@
     "react-syntax-highlighter": "^15.6.6",
     "reactflow": "^11.11.4",
     "tailwind-merge": "^3.5.0",
+    "ws": "^8.20.0",
     "xterm": "^5.3.0"
   },
   "devDependencies": {

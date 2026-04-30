@@ -378,7 +378,7 @@ export default function IDE({ initialProblem }: IDEProps) {
                             <div className="flex-1 overflow-hidden">
                               {bottomTab === 'output'
                                 ? <OutputPanel result={result} loading={loading} language={language} sourceCode={code} />
-                                : <TerminalPanel onClose={() => setIsTerminalOpen(false)} onRunCommand={handleCommand} />
+                                : <TerminalPanel onClose={() => setIsTerminalOpen(false)} onRunCommand={handleCommand} activeCode={code} activeLanguage={language} />
                               }
                             </div>
                           </div>
