@@ -20,23 +20,25 @@ export function useExecution() {
       setError(null);
       setResult(null);
 
-      // Normalise stdin early — empty string, never undefined
-      const normalisedStdin = (stdin ?? '').trimEnd();
+      // Normalise stdin — never undefined, trimEnd to remove trailing newlines
+      const normalisedStdin = typeof stdin === 'string' ? stdin.trimEnd() : '';
 
-      // console.log('[hook/useExecution] language:', language);
-      // console.log('[hook/useExecution] stdin being sent:', JSON.stringify(normalisedStdin));
+      console.log('[hook/useExecution] ▶ language:', language);
+      console.log('[hook/useExecution] ▶ stdin being sent:', JSON.stringify(normalisedStdin));
 
-      // 1. Generate visual steps from preprocessed code (synchronous, client-side)
+      // 1. Generate visual steps synchronously from preprocessed code
       const effectiveCode = preprocessCode(code, language);
       const visualSteps = generateExecutionSteps(effectiveCode, language, normalisedStdin);
       setSteps(visualSteps);
 
       try {
+        const payload = { language, code, stdin: normalisedStdin };
+        console.log('[hook/useExecution] ▶ fetch payload.stdin:', JSON.stringify(payload.stdin));
+
         const res = await fetch('/api/execute', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          // Send original code — API route/execution.ts handles preprocessing
-          body: JSON.stringify({ language, code, stdin: normalisedStdin }),
+          body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -53,7 +55,7 @@ export function useExecution() {
         setLoading(false);
         return data;
       } catch (err: any) {
-        // console.error('[hook/useExecution] Fetch error:', err);
+        console.error('[hook/useExecution] ✗ Fetch error:', err);
         const fallback: ExecutionResult = {
           success: false,
           error: err.message || 'Network error during execution',

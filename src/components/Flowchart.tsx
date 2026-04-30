@@ -1,12 +1,14 @@
 'use client';
-import React, { useMemo } from 'react';
-import ReactFlow, { 
-  Background, 
-  Controls, 
+import React, { useMemo, useCallback } from 'react';
+import ReactFlow, {
+  Background,
+  Controls,
   MarkerType,
   Handle,
   Position,
-  MiniMap
+  MiniMap,
+  useNodesState,
+  useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { ExecutionStep } from '@/types';
@@ -17,107 +19,116 @@ import { cn } from '@/lib/utils';
 interface FlowchartProps {
   steps: ExecutionStep[];
   currentStep: number;
+  /** Full preprocessed source code — used to build a complete CFG */
+  code?: string;
 }
 
-// Custom Node component for premium aesthetics
-const CodeNode = ({ data }: any) => {
-  const isDecision = data.type === 'decision';
-  const isIO = data.type === 'output' || data.type === 'input';
-  const isLoop = data.type === 'loop';
+// ── Custom node shapes ────────────────────────────────────────────────────────
+
+const NodeTypeColors: Record<string, string> = {
+  start:      'bg-green-500/10 border-green-500/40 text-green-400',
+  end:        'bg-red-500/10 border-red-500/40 text-red-400',
+  decision:   'bg-yellow-500/10 border-yellow-500/40 text-yellow-300',
+  loop:       'bg-blue-500/10 border-blue-500/40 text-blue-300',
+  output:     'bg-purple-500/10 border-purple-500/40 text-purple-300',
+  input:      'bg-cyan-500/10 border-cyan-500/40 text-cyan-300',
+  return:     'bg-orange-500/10 border-orange-500/40 text-orange-300',
+  process:    'bg-white/[0.03] border-white/10 text-gray-300',
+};
+
+const CodeNode = React.memo(({ data }: { data: any }) => {
+  const colorClass = NodeTypeColors[data.type] || NodeTypeColors.process;
 
   return (
-    <motion.div 
-      initial={false}
-      animate={{ 
-        scale: data.isActive ? 1.05 : 1,
-        borderColor: data.isActive ? '#f97316' : 'rgba(255, 255, 255, 0.05)'
+    <motion.div
+      animate={{
+        scale: data.isActive ? 1.06 : 1,
+        boxShadow: data.isActive ? '0 0 24px rgba(249,115,22,0.4)' : 'none',
       }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       className={cn(
-        "px-5 py-3 rounded-2xl border bg-[#0d0d10] shadow-2xl transition-all duration-500 min-w-[180px] relative",
-        data.isActive ? "ring-4 ring-orange-500/10 shadow-orange-500/20" : "",
-        isDecision ? "rounded-none rotate-45" : "", // Diamond for decision
-        isLoop ? "border-dashed border-orange-500/40" : "", // Dashed for loop
-        isIO ? "skew-x-12" : "" // Parallelogram for I/O
+        'px-4 py-2.5 rounded-xl border min-w-[160px] max-w-[220px] relative select-none',
+        colorClass,
+        data.isActive ? 'ring-2 ring-orange-500/60' : '',
       )}
     >
-      {/* Handles */}
-      <Handle type="target" position={Position.Top} className="!bg-gray-800 !w-2 !h-2 !border-0" />
-      
-      <div className={cn(
-        "flex flex-col gap-1.5",
-        isDecision ? "-rotate-45" : "",
-        isIO ? "-skew-x-12" : ""
-      )}>
-        <div className="flex items-center justify-between">
-          <div className="text-[7px] font-black uppercase tracking-[0.2em] text-gray-600">
-            {data.type || 'Instruction'}
-          </div>
-          {data.isActive && (
-            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-          )}
-        </div>
-        
-        <div className={cn(
-          "text-[10px] font-mono font-medium truncate max-w-[140px]",
-          data.isActive ? "text-orange-400" : "text-gray-300"
-        )}>
-          {data.label}
-        </div>
+      <Handle type="target" position={Position.Top} className="!bg-gray-700 !w-1.5 !h-1.5 !border-0 !top-[-4px]" />
+      <div className="flex items-center gap-2">
+        <span className="text-[7px] font-black uppercase tracking-widest opacity-60 shrink-0">
+          {data.type}
+        </span>
+        {data.isActive && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse ml-auto" />}
       </div>
-
-      <Handle type="source" position={Position.Bottom} className="!bg-gray-800 !w-2 !h-2 !border-0" />
-      
-      {data.isActive && (
-        <motion.div 
-          layoutId="node-glow"
-          className="absolute inset-0 bg-orange-500/5 rounded-2xl blur-xl -z-10"
-        />
-      )}
+      <div className="text-[10px] font-mono mt-1 leading-tight break-words">
+        {data.label}
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-gray-700 !w-1.5 !h-1.5 !border-0 !bottom-[-4px]" />
     </motion.div>
   );
-};
+});
+CodeNode.displayName = 'CodeNode';
 
-const nodeTypes = {
-  custom: CodeNode,
-};
+const nodeTypes = { custom: CodeNode };
 
-export default function Flowchart({ steps, currentStep }: FlowchartProps) {
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function Flowchart({ steps, currentStep, code }: FlowchartProps) {
   const currentLine = steps[currentStep]?.lineNumber;
-  
-  // Re-generate flow data from current steps if available, or full code
-  // For this implementation, we'll use the steps to identify current line
-  const { nodes, edges } = useMemo(() => {
-    // We'll use the first step's code if possible, but VisualizerPanel only passes steps.
-    // So we'll heuristic-ally build from steps line numbers.
-    return generateFlowchartData(steps.map(s => s.lineContent).join('\n'), currentLine);
-  }, [steps, currentLine]);
+
+  // Build CFG from full code when available; fall back to reconstructing from steps
+  const sourceCode = useMemo(() => {
+    if (code && code.trim().length > 0) return code;
+    // Reconstruct from unique step lines in order
+    const seen = new Set<number>();
+    return steps
+      .filter(s => { const ok = !seen.has(s.lineNumber); seen.add(s.lineNumber); return ok; })
+      .map(s => s.lineContent)
+      .join('\n');
+  }, [code, steps]);
+
+  const { nodes, edges } = useMemo(
+    () => generateFlowchartData(sourceCode, currentLine),
+    [sourceCode, currentLine],
+  );
+
+  if (nodes.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center p-8">
+        <div className="text-gray-800 text-[10px] font-black uppercase tracking-widest">
+          No flowchart data — run your code first.
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full bg-[#050507] relative group overflow-hidden">
+    <div className="h-full bg-[#050507] relative">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{ padding: 0.3 }}
         minZoom={0.1}
-        maxZoom={2}
+        maxZoom={3}
+        proOptions={{ hideAttribution: true }}
       >
-        <Background color="#1e293b" gap={25} size={1} />
-        <Controls className="bg-[#0d0d10] border-white/5 fill-gray-500 rounded-xl" />
-        <MiniMap 
+        <Background color="#1e293b" gap={24} size={1} />
+        <Controls
+          className="[&>button]:bg-[#0d0d10] [&>button]:border-white/10 [&>button]:text-gray-400"
+        />
+        <MiniMap
           nodeColor={(n) => (n.data as any).isActive ? '#f97316' : '#1e293b'}
-          maskColor="rgba(0, 0, 0, 0.5)"
-          className="bg-[#0d0d10] border-white/5 rounded-2xl"
-          style={{ width: 120, height: 120 }}
+          maskColor="rgba(0,0,0,0.6)"
+          style={{ width: 110, height: 90, background: '#0d0d10', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}
         />
       </ReactFlow>
 
-      {/* Interaction Help Overlay */}
-      <div className="absolute bottom-6 left-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-500">
-        <div className="glass-panel px-4 py-2 rounded-xl flex items-center gap-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping" />
-          <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Topology Visualization Sync</span>
-        </div>
+      {/* Active step legend */}
+      <div className="absolute top-4 left-4 glass-panel px-3 py-1.5 rounded-xl pointer-events-none">
+        <span className="text-[8px] font-black uppercase tracking-widest text-gray-500">
+          Line <span className="text-orange-500">{currentLine ?? '—'}</span> active
+        </span>
       </div>
     </div>
   );

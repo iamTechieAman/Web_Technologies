@@ -5,10 +5,28 @@ import { preprocessCode } from './preprocessor';
 const PISTON_URL = 'https://emkc.org/api/v2/piston/execute';
 const JUDGE0_CE_URL = 'https://ce.judge0.com';
 
-/**
- * Execute code using Piston API (primary — free, no key).
- * stdin is always included in the payload, even if empty string.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Returns true when the error string signals a missing-stdin condition. */
+function isInputStarvedError(stderr: string, language: SupportedLanguage): boolean {
+  const msg = stderr.toLowerCase();
+  if (language === 'java') return msg.includes('nosuchelementexception') || msg.includes('inputmismatchexception');
+  if (language === 'python') return msg.includes('eoferror') || msg.includes('end of file');
+  if (language === 'c' || language === 'cpp') return msg.includes('segmentation fault') || msg.includes('runtime error');
+  return false;
+}
+
+/** Friendly message when stdin is missing. */
+function inputRequiredMessage(raw: string): string {
+  return `⚠️  INPUT REQUIRED\nYour program is waiting for input (e.g. via Scanner, input(), or scanf) but no values were provided.\n\nHow to fix:\n  1. Click the "Stdin" button in the editor toolbar.\n  2. Type the expected input (e.g. "5" or "3.14").\n  3. Press Run again.\n\nOriginal error:\n${raw}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Piston
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function executeWithPiston(
   language: SupportedLanguage,
   code: string,
@@ -20,11 +38,11 @@ async function executeWithPiston(
     language: cfg.piston,
     version: cfg.pistonVersion,
     files: [{ name: `Main.${cfg.extension}`, content: code }],
-    stdin,                  // ← always present
+    stdin,          // ← always a string, never undefined
   };
 
-  // console.log('[lib/piston] payload.stdin:', JSON.stringify(payload.stdin));
-  // console.log('[lib/piston] language:', language, 'version:', cfg.pistonVersion);
+  console.log('[lib/piston] ▶ language:', language, '| version:', cfg.pistonVersion);
+  console.log('[lib/piston] ▶ stdin:', JSON.stringify(payload.stdin));
 
   const res = await fetch(PISTON_URL, {
     method: 'POST',
@@ -36,31 +54,23 @@ async function executeWithPiston(
 
   const data = await res.json();
   const run = data.run;
-
   if (!run) throw new Error('Piston returned no run data');
 
   const stdout = run.stdout || '';
   const stderr = run.stderr || '';
 
+  console.log('[lib/piston] ✓ exit code:', run.code, '| stdout:', stdout.slice(0, 80));
+
   if (run.code !== 0 && run.code !== null) {
     let error = stderr || run.output || 'Execution failed';
 
-    // Friendly error for missing stdin
-    if (
-      (language === 'java' && (error.includes('NoSuchElementException') || error.includes('InputMismatchException'))) ||
-      (language === 'python' && error.includes('EOFError')) ||
-      (language === 'c' && error.includes('Segmentation fault')) ||
-      (language === 'cpp' && error.includes('Segmentation fault'))
-    ) {
-      error = `⚠️ Input Required: Your program is waiting for input but none was provided (or not enough tokens). Please enter values in the "Input (stdin)" box and run again.\n\nOriginal error:\n${stderr}`;
-    }
-
-    // Friendly error for external modules
-    if (
+    if (isInputStarvedError(error, language)) {
+      error = inputRequiredMessage(error);
+    } else if (
       (language === 'javascript' || language === 'typescript') &&
       (error.includes('Cannot find module') || error.includes("require is not defined"))
     ) {
-      error = "External modules/packages are not supported in the online visualizer. Use standard built-in libraries or run locally.";
+      error = 'External modules/packages are not supported. Use standard built-in libraries.';
     }
 
     return {
@@ -73,21 +83,15 @@ async function executeWithPiston(
 
   return {
     success: true,
-    run: {
-      stdout,
-      stderr,
-      code: run.code,
-      signal: run.signal,
-      output: stdout + (stderr ? '\n' + stderr : ''),
-    },
+    run: { stdout, stderr, code: run.code, signal: run.signal, output: stdout + (stderr ? '\n' + stderr : '') },
     engine: 'piston',
   };
 }
 
-/**
- * Execute code using Judge0 Community Edition (fallback).
- * stdin is always included.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Judge0
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function executeWithJudge0(
   language: SupportedLanguage,
   code: string,
@@ -98,10 +102,10 @@ async function executeWithJudge0(
   const payload = {
     language_id: cfg.judge0Id,
     source_code: code,
-    stdin,                  // ← always present
+    stdin,          // ← always a string
   };
 
-  // console.log('[lib/judge0] payload.stdin:', JSON.stringify(payload.stdin));
+  console.log('[lib/judge0] ▶ stdin:', JSON.stringify(payload.stdin));
 
   const submitRes = await fetch(`${JUDGE0_CE_URL}/submissions?base64_encoded=false&wait=true`, {
     method: 'POST',
@@ -118,101 +122,71 @@ async function executeWithJudge0(
 
   if (data.status?.id >= 6) {
     let error = stderr || compileErr || data.status?.description || 'Execution failed';
-
-    if (
-      (language === 'javascript' || language === 'typescript') &&
-      (error.includes('Cannot find module') || error.includes("require is not defined"))
-    ) {
-      error = "External modules/packages are not supported in the online visualizer. Use standard built-in libraries or run locally.";
-    }
-
-    return {
-      success: false,
-      error,
-      engine: 'judge0',
-      executionTimeMs: parseFloat(data.time || '0') * 1000,
-    };
+    if (isInputStarvedError(error, language)) error = inputRequiredMessage(error);
+    return { success: false, error, engine: 'judge0', executionTimeMs: parseFloat(data.time || '0') * 1000 };
   }
 
   return {
     success: true,
-    run: {
-      stdout,
-      stderr,
-      code: data.exit_code ?? null,
-      signal: data.exit_signal ?? null,
-      output: stdout + (stderr ? '\n' + stderr : ''),
-    },
+    run: { stdout, stderr, code: data.exit_code ?? null, signal: data.exit_signal ?? null, output: stdout + (stderr ? '\n' + stderr : '') },
     engine: 'judge0',
     executionTimeMs: parseFloat(data.time || '0') * 1000,
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Main entry point
+// ─────────────────────────────────────────────────────────────────────────────
+
 const LOCAL_BACKEND_URL = 'http://localhost:3001/run-code';
 
-/**
- * Execute code with automatic fallback: Local Backend → Piston → Judge0.
- * stdin is normalised to empty string (never undefined) before passing down.
- */
 export async function executeCode(
   language: SupportedLanguage,
   code: string,
   stdin?: string,
 ): Promise<ExecutionResult> {
-  // Normalise stdin — never let it be undefined so every engine always gets a string
-  const normalisedStdin = (stdin ?? '').trimEnd();
+  // ① Normalise stdin — ALWAYS a non-undefined string
+  const normalisedStdin: string = typeof stdin === 'string' ? stdin : '';
 
-  // console.log('[lib/executeCode] language:', language);
-  // console.log('[lib/executeCode] stdin:', JSON.stringify(normalisedStdin));
+  console.log('[lib/executeCode] ▶ language:', language);
+  console.log('[lib/executeCode] ▶ stdin (normalised):', JSON.stringify(normalisedStdin));
 
-  // Pre-process: remove package declarations, rename class to Main, inject headers, etc.
+  // ② Pre-process code (strip package, rename class to Main, inject headers)
   const effectiveCode = preprocessCode(code, language);
 
-  // console.log('[lib/executeCode] effectiveCode (first 200 chars):', effectiveCode.slice(0, 200));
+  console.log('[lib/executeCode] ▶ effectiveCode (first 150 chars):', effectiveCode.slice(0, 150).replace(/\n/g, '↵'));
 
-  // 1. Try Local Execution Server (optional, for development)
+  // ③ Try local dev server (optional, fast)
   try {
     const res = await fetch(LOCAL_BACKEND_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ language, code: effectiveCode, stdin: normalisedStdin }),
     });
-
     if (res.ok) {
-      const data = await res.json();
+      const d = await res.json();
+      console.log('[lib/executeCode] ✓ local backend responded');
       return {
-        success: !data.error || data.output !== '',
-        run: {
-          stdout: data.output,
-          stderr: data.error,
-          code: data.error ? 1 : 0,
-          signal: null,
-          output: data.output + (data.error ? '\n' + data.error : ''),
-        },
+        success: !d.error,
+        run: { stdout: d.output, stderr: d.error, code: d.error ? 1 : 0, signal: null, output: d.output + (d.error ? '\n' + d.error : '') },
         engine: 'local',
-        executionTimeMs: parseInt(data.time || '0'),
+        executionTimeMs: parseInt(d.time || '0'),
       };
     }
-  } catch (_localErr) {
-    // Local server not running — silent fall-through to Piston
-  }
+  } catch { /* no local server — fall through */ }
 
-  // 2. Try Piston as primary cloud engine
+  // ④ Piston (primary cloud engine)
   try {
     return await executeWithPiston(language, effectiveCode, normalisedStdin);
   } catch (pistonErr) {
-    // console.warn('[lib] Piston failed, falling back to Judge0:', pistonErr);
+    console.warn('[lib/executeCode] ✗ Piston failed:', pistonErr);
   }
 
-  // 3. Fallback to Judge0 CE
+  // ⑤ Judge0 CE (fallback)
   try {
     return await executeWithJudge0(language, effectiveCode, normalisedStdin);
   } catch (judge0Err) {
-    // console.error('[lib] All execution engines failed:', judge0Err);
-    return {
-      success: false,
-      error: 'All execution engines are unavailable. Please check your internet connection.',
-      engine: 'piston',
-    };
+    console.error('[lib/executeCode] ✗ All engines failed:', judge0Err);
+    return { success: false, error: 'All execution engines are unavailable. Check your internet connection.', engine: 'piston' };
   }
 }

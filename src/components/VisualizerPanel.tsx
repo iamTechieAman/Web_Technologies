@@ -1,50 +1,59 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { 
-  Activity, Layout, GitBranch, Share2, 
-  Layers, Play, SkipBack, SkipForward, Pause,
-  Lightbulb, Info, Maximize2, Minimize2,
-  ChevronRight, ChevronLeft, FastForward
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  Activity, Layout, GitBranch, Share2,
+  Layers, Lightbulb, Info, Maximize2, Minimize2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ExecutionStep } from '@/types';
 import { generateExplanation } from '@/lib/explainStep';
 import { motion, AnimatePresence } from 'framer-motion';
-import MemoryMap from './MemoryMap';
-import ArrayView from './ArrayView';
-import TreeView from './TreeView';
-import RecursionTree from './RecursionTree';
-import Flowchart from './Flowchart';
+import { preprocessCode } from '@/lib/preprocessor';
+import dynamic from 'next/dynamic';
 import PlaybackControls from './PlaybackControls';
+
+// Lazy-load heavy visualizer tabs to keep initial bundle small
+const MemoryMap      = dynamic(() => import('./MemoryMap'),      { ssr: false });
+const ArrayView      = dynamic(() => import('./ArrayView'),      { ssr: false });
+const TreeView       = dynamic(() => import('./TreeView'),       { ssr: false });
+const RecursionTree  = dynamic(() => import('./RecursionTree'),  { ssr: false });
+const Flowchart      = dynamic(() => import('./Flowchart'),      { ssr: false });
 
 interface VisualizerPanelProps {
   steps: ExecutionStep[];
   currentStep: number;
   setCurrentStep: (step: number) => void;
   player: any;
+  /** Raw source code (not yet preprocessed) */
   code: string;
   language: string;
 }
 
 type TabType = 'memory' | 'array' | 'tree' | 'recursion' | 'flowchart';
 
-export default function VisualizerPanel({ 
-  steps, currentStep, setCurrentStep, player, code, language 
+export default function VisualizerPanel({
+  steps, currentStep, setCurrentStep, player, code, language,
 }: VisualizerPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('memory');
   const [isExpanded, setIsExpanded] = useState(false);
   const [displayText, setDisplayText] = useState('');
-  
-  const step = steps[currentStep] || { 
-    variables: {}, 
-    lineContent: 'Initializing...', 
-    explanation: 'Ready to visualize...',
+
+  // Always use preprocessed code for the flowchart so it reflects real execution
+  const preprocessedCode = useMemo(() => preprocessCode(code, language), [code, language]);
+
+  const step = steps[currentStep] ?? {
+    variables: {},
+    lineContent: 'Initializing…',
+    explanation: 'Ready to visualize.',
     stepIndex: 0,
     lineNumber: 0,
-    stdout: ''
+    stdout: '',
   };
 
-  const fullExplanation = generateExplanation(step, code, language);
+  const fullExplanation = useMemo(
+    () => generateExplanation(step, code, language),
+    [step, code, language],
+  );
 
   // Typewriter effect for explanation
   useEffect(() => {
@@ -57,126 +66,124 @@ export default function VisualizerPanel({
       } else {
         clearInterval(timer);
       }
-    }, 10); // Faster typewriter
+    }, 8);
     return () => clearInterval(timer);
   }, [fullExplanation]);
 
-  const tabs = [
-    { id: 'memory', label: 'Memory Map', icon: <Layers size={14} /> },
-    { id: 'array', label: 'Array View', icon: <Layout size={14} /> },
-    { id: 'tree', label: 'Tree View', icon: <GitBranch size={14} /> },
-    { id: 'recursion', label: 'Recursion', icon: <Share2 size={14} /> },
-    { id: 'flowchart', label: 'Flowchart', icon: <Activity size={14} /> },
+  const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
+    { id: 'memory',    label: 'Memory',    icon: <Layers size={12} /> },
+    { id: 'array',     label: 'Array',     icon: <Layout size={12} /> },
+    { id: 'tree',      label: 'Tree',      icon: <GitBranch size={12} /> },
+    { id: 'recursion', label: 'Recursion', icon: <Share2 size={12} /> },
+    { id: 'flowchart', label: 'Flowchart', icon: <Activity size={12} /> },
   ];
 
   return (
     <div className={cn(
-      "h-full flex flex-col bg-[#050507] transition-all duration-500",
-      isExpanded ? "fixed inset-0 z-[100] p-6" : "relative"
+      'h-full flex flex-col bg-[#050507] transition-all duration-500',
+      isExpanded ? 'fixed inset-0 z-[100] p-4' : 'relative',
     )}>
-      {/* Execution Status Banner */}
+      {/* Simulated trace banner */}
       {player.executionFailed && (
-        <div className="px-6 py-2">
-          <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="px-4 py-1.5 shrink-0">
+          <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl px-4 py-1.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-orange-200/70">
+              <span className="text-[9px] font-black uppercase tracking-widest text-orange-200/70">
                 Viewing Simulated Trace (Execution Failed)
               </span>
             </div>
-            <Info size={14} className="text-orange-500/50" />
+            <Info size={13} className="text-orange-500/50" />
           </div>
         </div>
       )}
 
-      {/* Premium Header / Explanation Card */}
-      <div className="p-6 shrink-0">
-        <motion.div 
-          layout
-          className="glass-card p-6 relative overflow-hidden group orange-glow"
-        >
-          {/* Background Gradient Glow */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 blur-[100px] -mr-32 -mt-32 rounded-full" />
-          
-          <div className="flex gap-6 items-start relative z-10">
-            <div className="w-14 h-14 rounded-2xl bg-orange-500/20 flex items-center justify-center border border-orange-500/30 group-hover:scale-110 transition-transform duration-500">
-              <Lightbulb size={28} className="text-orange-500 animate-pulse" />
+      {/* AI Insight card */}
+      <div className="px-4 pt-4 pb-2 shrink-0">
+        <motion.div layout className="glass-card p-4 relative overflow-hidden group orange-glow">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-orange-500/10 blur-[80px] -mr-20 -mt-20 rounded-full" />
+          <div className="flex gap-4 items-start relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center border border-orange-500/30 shrink-0">
+              <Lightbulb size={20} className="text-orange-500" />
             </div>
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 min-w-0 space-y-1">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-500">AI Mentor Insight</h4>
-                  <div className="h-px w-12 bg-orange-500/30" />
-                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                    Step {currentStep + 1} of {steps.length || 1}
-                  </span>
-                </div>
-                <button 
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="p-2 text-gray-600 hover:text-white transition-colors"
+                <span className="text-[9px] font-black uppercase tracking-[0.25em] text-orange-500">
+                  Step {currentStep + 1} / {steps.length || 1}
+                </span>
+                <button
+                  onClick={() => setIsExpanded(e => !e)}
+                  className="p-1 text-gray-600 hover:text-white transition-colors"
                 >
-                  {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                  {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                 </button>
               </div>
-              <div className="text-sm text-gray-200 leading-relaxed font-medium min-h-[3rem] typewriter-cursor">
-                <span dangerouslySetInnerHTML={{ __html: displayText }} />
-              </div>
+              <div
+                className="text-xs text-gray-200 leading-relaxed font-medium min-h-[2rem]"
+                dangerouslySetInnerHTML={{ __html: displayText }}
+              />
             </div>
           </div>
         </motion.div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="px-6 pb-2 shrink-0">
-        <div className="flex p-1.5 bg-white/[0.03] border border-white/5 rounded-2xl gap-1">
+      {/* Tab bar — scrollable on mobile */}
+      <div className="px-4 pb-2 shrink-0 overflow-x-auto">
+        <div className="flex p-1 bg-white/[0.03] border border-white/5 rounded-xl gap-1 min-w-max">
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as TabType)}
+              onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative overflow-hidden group",
-                activeTab === tab.id 
-                  ? "text-orange-500 bg-orange-500/10 shadow-[inset_0_0_20px_rgba(249,115,22,0.05)]" 
-                  : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all relative shrink-0',
+                activeTab === tab.id
+                  ? 'text-orange-500 bg-orange-500/10'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-white/5',
               )}
             >
               {activeTab === tab.id && (
-                <motion.div 
-                  layoutId="activeTab"
-                  className="absolute inset-0 border border-orange-500/50 rounded-xl"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                <motion.div
+                  layoutId="activeVisualizerTab"
+                  className="absolute inset-0 border border-orange-500/50 rounded-lg"
+                  transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
                 />
               )}
               {tab.icon}
-              <span>{tab.label}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Main Visualization Content */}
-      <div className="flex-1 overflow-hidden relative px-6 py-4">
+      {/* Tab content */}
+      <div className="flex-1 overflow-hidden relative px-4 pb-4">
         <AnimatePresence mode="wait">
-          <motion.div 
+          <motion.div
             key={activeTab}
-            initial={{ opacity: 0, scale: 0.98, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 1.02, y: -10 }}
-            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-            className="h-full relative glass-card p-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+            className="h-full glass-card p-3 overflow-hidden"
           >
-            {activeTab === 'memory' && <MemoryMap variables={step.variables} />}
-            {activeTab === 'array' && <ArrayView variables={step.variables} />}
-            {activeTab === 'tree' && <TreeView variables={step.variables} />}
+            {activeTab === 'memory'    && <MemoryMap variables={step.variables} />}
+            {activeTab === 'array'     && <ArrayView variables={step.variables} />}
+            {activeTab === 'tree'      && <TreeView variables={step.variables} />}
             {activeTab === 'recursion' && <RecursionTree steps={steps} currentStep={currentStep} />}
-            {activeTab === 'flowchart' && <Flowchart steps={steps} currentStep={currentStep} />}
+            {activeTab === 'flowchart' && (
+              <Flowchart
+                steps={steps}
+                currentStep={currentStep}
+                code={preprocessedCode}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Playback Controls (Floating Pill) */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50">
-        <PlaybackControls 
+      {/* Playback controls */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <PlaybackControls
           currentStep={currentStep}
           totalSteps={steps.length || 1}
           isPlaying={player.isPlaying}
