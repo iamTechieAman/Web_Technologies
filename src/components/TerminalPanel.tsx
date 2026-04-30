@@ -18,13 +18,15 @@ interface TerminalPanelProps {
   onClose: () => void;
   /** Batch fallback: for non-interactive commands ("run", "ls", etc.) */
   onRunCommand: (cmd: string) => Promise<string>;
+  /** IDE calls this with a fn it can invoke to trigger a run imperatively */
+  onRegisterRunTrigger?: (fn: () => void) => void;
   /** Called when the user types "run" in interactive mode — provides code+language */
   activeCode?: string;
   activeLanguage?: string;
 }
 
 export default function TerminalPanel({
-  onClose, onRunCommand, activeCode, activeLanguage,
+  onClose, onRunCommand, activeCode, activeLanguage, onRegisterRunTrigger,
 }: TerminalPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const xtermRef     = useRef<Terminal | null>(null);
@@ -129,7 +131,23 @@ export default function TerminalPanel({
             setServerStatus('connected');
             term.write('\r\x1b[K'); // clear the "checking..." line
             term.writeln(' \x1b[32m● Interactive mode active\x1b[0m  \x1b[2m(local exec server connected)\x1b[0m');
-            term.writeln(' \x1b[2mType  \x1b[32mrun\x1b[0m\x1b[2m  to execute your active file, or any command below.\x1b[0m\r\n');
+            term.writeln(' \x1b[2mType  \x1b[32mrun\x1b[0m\x1b[2m  to execute your active file · \x1b[0m\x1b[2mInput typed here goes directly to your program.\x1b[0m\r\n');
+
+            // Register the run trigger so IDE.tsx Run button works
+            if (onRegisterRunTrigger) {
+              onRegisterRunTrigger(() => {
+                const codeToRun = activeCode || '';
+                const lang      = activeLanguage || 'python';
+                if (!codeToRun.trim()) {
+                  term.writeln('\x1b[31m✗ No code to run. Open a file in the editor.\x1b[0m');
+                  return;
+                }
+                if (ws.readyState === WebSocket.OPEN) {
+                  term.writeln(`\x1b[2m▶ Running ${lang}…\x1b[0m\r\n`);
+                  ws.send(JSON.stringify({ type: 'run', code: codeToRun, language: lang }));
+                }
+              });
+            }
 
             // ── Handle messages from exec server ───────────────────────────
             ws.onmessage = (event) => {
