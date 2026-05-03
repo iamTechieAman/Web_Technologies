@@ -9,6 +9,5 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_..."
-  # Terminal Server URL (replace with your production PTY server)
-  NEXT_PUBLIC_WS_SERVER_URL = "wss://codevisualizer-terminal.up.railway.app"
+  # Environment variables should be managed in the Netlify UI for security.
+  # Hardcoded values here were overriding the UI settings.
