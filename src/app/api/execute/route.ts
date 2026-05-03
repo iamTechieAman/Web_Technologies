@@ -3,6 +3,7 @@ import { executeCode } from '@/lib/execution';
 import type { SupportedLanguage } from '@/types';
 
 export async function POST(req: NextRequest) {
+  console.log('[API /execute] 🚀 Request received');
   try {
     const body = await req.json();
     const { language, code, stdin } = body as {
@@ -10,11 +11,6 @@ export async function POST(req: NextRequest) {
       code: string;
       stdin?: string;
     };
-
-    // ── ACTIVE DEBUG LOG — remove after confirming stdin arrives ──
-    console.log('[API /execute] ▶ language:', language);
-    console.log('[API /execute] ▶ stdin received:', JSON.stringify(stdin));
-    // ─────────────────────────────────────────────────────────────
 
     if (!language || !code) {
       return NextResponse.json(

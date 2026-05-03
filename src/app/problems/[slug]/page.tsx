@@ -1,5 +1,4 @@
 import React from 'react';
-import { notFound } from 'next/navigation';
 import IDE from '@/components/IDE';
 import problems from '@/data/problems.json';
 import { Problem } from '@/types';
@@ -18,15 +17,23 @@ export async function generateStaticParams() {
 }
 
 export default function ProblemPage({ params }: PageProps) {
-  const problem = (problems as any[]).find((p) => p.titleSlug === params.slug || p.slug === params.slug);
+  const slug = params?.slug ?? '';
+  const problem = (problems as any[]).find((p) => p?.titleSlug === slug || p?.slug === slug);
+  console.log('[problems/[slug]] route', { slug, found: !!problem });
 
   if (!problem) {
-    notFound();
+    return (
+      <main className="h-screen w-screen bg-[#050507] overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-200">Problem not found</h1>
+        </div>
+      </main>
+    );
   }
 
   return (
     <main className="h-screen w-screen bg-[#050507] overflow-hidden">
-      <IDE initialProblem={problem} />
+      <IDE initialProblem={problem as Problem} />
     </main>
   );
 }

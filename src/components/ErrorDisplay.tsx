@@ -79,10 +79,10 @@ export default function ErrorDisplay({ stderr, language, sourceCode }: ErrorDisp
         )}
 
         {/* Fix suggestion */}
-        <div className="flex items-start gap-2.5 p-3 bg-orange-500/5 border border-orange-500/15 rounded-xl">
-          <Lightbulb size={14} className="text-orange-500 shrink-0 mt-0.5" />
-          <p className="text-[11px] text-orange-200/80 leading-relaxed font-medium">
-            <span className="text-orange-500 font-black">Fix: </span>
+        <div className="flex items-start gap-2.5 p-3 bg-cyan-500/5 border border-cyan-500/15 rounded-xl">
+          <Lightbulb size={14} className="text-cyan-500 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-cyan-200/80 leading-relaxed font-medium">
+            <span className="text-cyan-500 font-black">Fix: </span>
             {err.fix}
           </p>
         </div>

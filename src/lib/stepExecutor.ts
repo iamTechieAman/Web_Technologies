@@ -5,11 +5,11 @@ import { ExecutionStep } from '@/types';
  * Fully stdin-aware heuristic execution engine.
  * Tracks variables, consumes stdin tokens, classifies events accurately.
  */
-export function generateExecutionSteps(code: string, language: string, stdin?: string): ExecutionStep[] {
+export function generateExecutionSteps(code: string, _language: string, stdin?: string): ExecutionStep[] {
   const lines = code.split('\n');
   const steps: ExecutionStep[] = [];
   // Deep-clone mutable variable store: name → { value, type }
-  const variables: Record<string, { value: any; type: string }> = {};
+  const variables: Record<string, { value: unknown; type: string }> = {};
 
   // Tokenize stdin: split on whitespace/newlines, filter empties
   const stdinTokens: string[] = (stdin || '').trim().split(/\s+/).filter(Boolean);
@@ -18,7 +18,7 @@ export function generateExecutionSteps(code: string, language: string, stdin?: s
   const callStack: Array<{ functionName: string; params: string }> = [];
 
   /** Consume one stdin token, returning a typed value. */
-  const consumeToken = (expectNumber: boolean): any => {
+  const consumeToken = (expectNumber: boolean): unknown => {
     if (tokenPtr >= stdinTokens.length) return expectNumber ? 0 : '';
     const raw = stdinTokens[tokenPtr++];
     if (expectNumber) {
@@ -51,7 +51,7 @@ export function generateExecutionSteps(code: string, language: string, stdin?: s
    * Evaluate a right-hand-side expression to a concrete value.
    * Respects stdin consumption.
    */
-  const evaluateExpr = (expr: string): { value: any; type: string } => {
+  const evaluateExpr = (expr: string): { value: unknown; type: string } => {
     const s = expr.trim();
 
     // Check stdin read patterns first
@@ -102,7 +102,7 @@ export function generateExecutionSteps(code: string, language: string, stdin?: s
   };
 
   /** Snapshot of current variable state (deep clone). */
-  const snapshot = (): Record<string, { value: any; type: string }> =>
+  const snapshot = (): Record<string, { value: unknown; type: string }> =>
     JSON.parse(JSON.stringify(variables));
 
   // ──────────────────────────────────────────────────────────────
@@ -120,7 +120,9 @@ export function generateExecutionSteps(code: string, language: string, stdin?: s
       line.startsWith('/*') || line.startsWith('*') ||
       line.startsWith('import ') ||
       line.startsWith('package ') ||
-      line.startsWith('using ')
+      line.startsWith('using ') ||
+      /^(?:public\s+)?class\s+\w+\s*\{?$/.test(line) ||
+      /^(?:public\s+)?static\s+void\s+main\s*\(/.test(line)
     ) continue;
 
     // ── Function/method declaration detection ──

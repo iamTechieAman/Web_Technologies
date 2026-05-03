@@ -6,7 +6,6 @@ import { ComplexityResult } from '@/types';
  */
 export function analyzeComplexity(code: string): ComplexityResult {
   const lines = code.split('\n');
-  const trimmed = code.replace(/\s+/g, ' ');
 
   let nestingDepth = 0;
   let maxNesting = 0;

@@ -33,8 +33,6 @@ export async function POST(req: NextRequest) {
     const zipEntries = zip.getEntries();
 
     const fileTree: any[] = [];
-    const filesMap: Record<string, any> = {};
-
     zipEntries.forEach((entry) => {
       if (entry.isDirectory) return;
 
@@ -44,7 +42,6 @@ export async function POST(req: NextRequest) {
       
       if (parts.length === 0) return;
 
-      const path = parts.join('/');
       const content = entry.getData().toString('utf8');
       
       // Build tree structure

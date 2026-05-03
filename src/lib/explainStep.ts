@@ -1,6 +1,6 @@
 import { ExecutionStep } from '@/types';
 
-export function generateExplanation(step: ExecutionStep, code: string, language: string): string {
+export function generateExplanation(step: ExecutionStep, _code: string, _language: string): string {
   if (step.explanation) return step.explanation;
 
   const line = step.lineContent.trim();

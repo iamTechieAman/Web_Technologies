@@ -1,14 +1,14 @@
 'use client';
-import React, { useMemo } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Database, TrendingUp, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ArrayViewProps {
-  variables: Record<string, { value: any, type: string }>;
+  variables: Record<string, { value: unknown, type: string }>;
 }
 
-export default function ArrayView({ variables }: ArrayViewProps) {
+export default function ArrayView({ variables }: ArrayViewProps): React.ReactNode {
   const arrayEntry = Object.entries(variables).find(([_, val]) => val.type === 'array');
 
   if (!arrayEntry) {
@@ -17,14 +17,14 @@ export default function ArrayView({ variables }: ArrayViewProps) {
         <Database size={48} className="text-gray-800 mb-4 opacity-40" />
         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No Array in Scope</p>
         <p className="text-[9px] text-gray-600 mt-2 max-w-[200px] leading-relaxed">
-          Declare an array variable (e.g. <code className="text-orange-500">int[] arr = {'{1,2,3}'}</code>) and run your code to see a visual bar chart here.
+          Declare an array variable (e.g. <code className="text-cyan-500">int[] arr = {'{1,2,3}'}</code>) and run your code to see a visual bar chart here.
         </p>
       </div>
     );
   }
 
   const [name, data] = arrayEntry;
-  const arr = data.value as any[];
+  const arr = data.value as unknown[];
   const maxValue = Math.max(...(arr.filter(v => typeof v === 'number') as number[]), 10);
 
   return (
@@ -54,7 +54,7 @@ export default function ArrayView({ variables }: ArrayViewProps) {
               <div key={i} className="flex items-center gap-1">
                 <div className={cn(
                   "w-2 h-2 rounded-full",
-                  i === 1 ? "bg-blue-500" : i === 2 ? "bg-orange-500" : "bg-green-500"
+                  i === 1 ? "bg-blue-500" : i === 2 ? "bg-cyan-500" : "bg-green-500"
                 )} />
                 <span className="text-[8px] font-bold text-gray-600">
                   {i === 1 ? "Read" : i === 2 ? "Access" : "Swap"}
@@ -72,9 +72,9 @@ export default function ArrayView({ variables }: ArrayViewProps) {
         </div>
 
         <AnimatePresence mode="popLayout">
-          {arr.map((val: any, idx: number) => {
+          {arr.map((val: unknown, idx: number) => {
             const isNumber = typeof val === 'number';
-            const height = isNumber ? (val / maxValue) * 100 : 30;
+            const height = isNumber ? (val as number / maxValue) * 100 : 30;
             
             return (
               <motion.div 
@@ -94,7 +94,7 @@ export default function ArrayView({ variables }: ArrayViewProps) {
                     )}
                   >
                     <div className="absolute -top-7 text-[10px] font-black text-white opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 px-2 py-0.5 rounded border border-white/10 backdrop-blur">
-                      {val}
+                      {val as React.ReactNode}
                     </div>
                     {/* Glowing Cap */}
                     <div className="h-1 w-full bg-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.5)] rounded-full opacity-50" />
@@ -113,8 +113,8 @@ export default function ArrayView({ variables }: ArrayViewProps) {
 
       <div className="mt-auto glass-panel p-4 rounded-2xl flex items-center justify-between border-t border-white/5">
         <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-orange-500/10 rounded-lg">
-            <Info size={14} className="text-orange-500" />
+          <div className="p-1.5 bg-cyan-500/10 rounded-lg">
+            <Info size={14} className="text-cyan-500" />
           </div>
           <p className="text-[10px] font-bold text-gray-400">
             Current Focus: <span className="text-blue-400">Random Access Optimization</span>

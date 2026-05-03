@@ -1,8 +1,7 @@
 'use client';
 import React, { useMemo, useRef, useEffect } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { GitBranch, Network, Maximize, MousePointer2, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Network, Maximize, MousePointer2, Info, GitBranch } from 'lucide-react';
 
 interface TreeViewProps {
   variables: Record<string, { value: any, type: string }>;
@@ -74,9 +73,9 @@ export default function TreeView({ variables }: TreeViewProps) {
         <GitBranch size={48} className="text-gray-800 mb-4 opacity-40" />
         <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No Tree Structure Found</p>
         <p className="text-[9px] text-gray-600 mt-2 max-w-[220px] leading-relaxed">
-          Create an object with <code className="text-orange-500">left</code>,{' '}
-          <code className="text-orange-500">right</code>, or{' '}
-          <code className="text-orange-500">children</code> fields to visualise a tree graph here.
+          Create an object with <code className="text-cyan-500">left</code>,{' '}
+          <code className="text-cyan-500">right</code>, or{' '}
+          <code className="text-cyan-500">children</code> fields to visualise a tree graph here.
         </p>
       </div>
     );
@@ -89,8 +88,8 @@ export default function TreeView({ variables }: TreeViewProps) {
       {/* HUD Overlays */}
       <div className="absolute top-4 left-4 z-10 space-y-2">
         <div className="glass-panel px-4 py-2 rounded-xl flex items-center gap-3">
-          <div className="p-1.5 bg-orange-500/20 rounded-lg">
-            <Network size={16} className="text-orange-500" />
+          <div className="p-1.5 bg-cyan-500/20 rounded-lg">
+            <Network size={16} className="text-cyan-500" />
           </div>
           <div>
             <h4 className="text-[10px] font-black uppercase tracking-widest text-white">Dynamic Tree Model</h4>
@@ -100,7 +99,7 @@ export default function TreeView({ variables }: TreeViewProps) {
         
         <div className="glass-panel px-3 py-2 rounded-xl flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-orange-500" />
+            <div className="w-2 h-2 rounded-full bg-cyan-500" />
             <span className="text-[8px] font-black text-gray-500 uppercase">Parent</span>
           </div>
           <div className="flex items-center gap-2">
@@ -132,9 +131,9 @@ export default function TreeView({ variables }: TreeViewProps) {
             const label = node.label;
             const fontSize = 14 / globalScale;
             ctx.font = `${fontSize}px JetBrains Mono`;
-            const textWidth = ctx.measureText(label).width;
+            /* const textWidth = ctx.measureText(label).width;
             const padding = 4 / globalScale;
-            const bckgDimensions = [textWidth + padding * 2, fontSize + padding * 2];
+            const bckgDimensions = [textWidth + padding * 2, fontSize + padding * 2]; */
 
             // Node Circle
             ctx.beginPath();

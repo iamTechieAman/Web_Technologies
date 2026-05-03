@@ -2,29 +2,42 @@
 import { useState, useEffect, useCallback } from 'react';
 import localforage from 'localforage';
 import { FileNode, SupportedLanguage } from '@/types';
+import { safeArray, safeString } from '@/lib/safe';
 
 const STORAGE_KEY = 'codevisualizer_filesystem';
 
-// Zero-dependency UUID generator
-const generateUUID = () => {
-  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+const generateUUID = (): string => {
+  if (typeof window !== 'undefined' && window.crypto?.randomUUID) {
     return window.crypto.randomUUID();
   }
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
-export function useFileSystem() {
+export function useFileSystem(): {
+  files: FileNode[];
+  isLoaded: boolean;
+  createFile: (parentId: string, name: string, language?: SupportedLanguage) => { id: string };
+  createFolder: (parentId: string, name: string) => { id: string };
+  deleteNode: (id: string) => void;
+  renameNode: (id: string, newName: string) => void;
+  updateNodeContent: (id: string, content: string, language?: SupportedLanguage) => void;
+  findNode: (id: string) => FileNode | null;
+  importProject: (newFiles: FileNode[]) => Promise<void>;
+  resetWorkspace: () => void;
+} {
   const [files, setFiles] = useState<FileNode[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localforage
   useEffect(() => {
     const load = async () => {
-      const saved = await localforage.getItem<FileNode[]>(STORAGE_KEY);
-      if (saved && saved.length > 0) {
-        setFiles(saved);
-      } else {
-        // Initial state: Start with an empty workspace
+      try {
+        const saved = await localforage.getItem<FileNode[]>(STORAGE_KEY);
+        if (Array.isArray(saved)) {
+          setFiles(saved);
+        } else {
+          setFiles([]);
+        }
+      } catch (error) {
         setFiles([]);
       }
       setIsLoaded(true);
@@ -32,15 +45,18 @@ export function useFileSystem() {
     load();
   }, []);
 
-  // Save to localforage
   useEffect(() => {
     if (isLoaded) {
-      localforage.setItem(STORAGE_KEY, files);
+      const persistTimer = window.setTimeout(() => {
+        localforage.setItem(STORAGE_KEY, files).catch(() => {});
+      }, 500);
+      return () => window.clearTimeout(persistTimer);
     }
   }, [files, isLoaded]);
 
-  const findNode = (nodes: FileNode[], id: string): FileNode | null => {
-    for (const node of nodes) {
+  const findNode = useCallback((nodes: FileNode[] | undefined, id: string): FileNode | null => {
+    const safeNodes = safeArray<FileNode>(nodes);
+    for (const node of safeNodes) {
       if (node.id === id) return node;
       if (node.children) {
         const found = findNode(node.children, id);
@@ -48,111 +64,155 @@ export function useFileSystem() {
       }
     }
     return null;
-  };
+  }, []);
 
-  const updateNodeContent = useCallback((id: string, content: string) => {
+  const validateName = useCallback((name: string, parentId: string, currentFiles: FileNode[], currentId?: string): string => {
+    const trimmed = safeString(name).trim();
+    if (!trimmed) throw new Error('Name cannot be empty');
+    if (/[\\/:*?"<>|]/.test(trimmed)) throw new Error('Invalid characters');
+
+    const parent = parentId === 'root'
+      ? { children: currentFiles }
+      : findNode(currentFiles, parentId);
+
+    const siblings = safeArray<FileNode>(parent?.children);
+    if (siblings.length > 0) {
+      const exists = siblings.some(
+        n => n.name.toLowerCase() === trimmed.toLowerCase() && n.id !== currentId
+      );
+      if (exists) throw new Error(`"${trimmed}" already exists`);
+    }
+
+    return trimmed;
+  }, [findNode]);
+
+  const updateNodeContent = useCallback((id: string, content: string, language?: SupportedLanguage) => {
     setFiles(prev => {
-      const update = (nodes: FileNode[]): FileNode[] => {
-        return nodes.map(node => {
-          if (node.id === id) return { ...node, content };
-          if (node.children) return { ...node, children: update(node.children) };
-          return node;
-        });
-      };
+      const update = (nodes: FileNode[]): FileNode[] =>
+        nodes.map(node =>
+          node.id === id
+            ? { ...node, content: content || '', ...(language ? { language } : {}) }
+            : node.children
+              ? { ...node, children: update(node.children) }
+              : node
+        );
       return update(prev);
     });
   }, []);
 
   const createFile = useCallback((parentId: string, name: string, language?: SupportedLanguage) => {
-    const newNode: FileNode = {
-      id: generateUUID(),
-      name,
-      type: 'file',
-      language: language || 'javascript',
-      content: '',
-      parentId: parentId === 'root' ? undefined : parentId
-    };
-
+    let newId = generateUUID();
     setFiles(prev => {
-      if (parentId === 'root') return [...prev, newNode];
-      const update = (nodes: FileNode[]): FileNode[] => {
-        return nodes.map(node => {
-          if (node.id === parentId) {
-            return { ...node, children: [...(node.children || []), newNode] };
-          }
-          if (node.children) return { ...node, children: update(node.children) };
-          return node;
-        });
-      };
-      return update(prev);
-    });
+      try {
+        const validName = validateName(name, parentId, prev);
+        const newNode: FileNode = {
+          id: newId,
+          name: validName,
+          type: 'file',
+          language: language || 'javascript',
+          content: '',
+          parentId: parentId === 'root' ? undefined : parentId
+        };
 
-    return newNode;
-  }, []);
+        if (parentId === 'root') return [...prev, newNode];
+
+        const update = (nodes: FileNode[]): FileNode[] =>
+          nodes.map(node =>
+            node.id === parentId
+              ? { ...node, children: [...(node.children || []), newNode] }
+              : node.children
+                ? { ...node, children: update(node.children) }
+                : node
+          );
+        return update(prev);
+      } catch (e: unknown) {
+        setTimeout(() => alert(e instanceof Error ? e.message : 'Error creating file'), 0);
+        return prev;
+      }
+    });
+    return { id: newId }; // Return a partial stub so the caller has the ID to open the tab immediately
+  }, [validateName]);
 
   const createFolder = useCallback((parentId: string, name: string) => {
-    const newNode: FileNode = {
-      id: generateUUID(),
-      name,
-      type: 'folder',
-      children: [],
-      parentId: parentId === 'root' ? undefined : parentId
-    };
-
+    let newId = generateUUID();
     setFiles(prev => {
-      if (parentId === 'root') return [...prev, newNode];
-      const update = (nodes: FileNode[]): FileNode[] => {
-        return nodes.map(node => {
-          if (node.id === parentId) {
-            return { ...node, children: [...(node.children || []), newNode] };
-          }
-          if (node.children) return { ...node, children: update(node.children) };
-          return node;
-        });
-      };
-      return update(prev);
-    });
+      try {
+        const validName = validateName(name, parentId, prev);
+        const newNode: FileNode = {
+          id: newId,
+          name: validName,
+          type: 'folder',
+          children: [],
+          parentId: parentId === 'root' ? undefined : parentId
+        };
 
-    return newNode;
-  }, []);
+        if (parentId === 'root') return [...prev, newNode];
+
+        const update = (nodes: FileNode[]): FileNode[] =>
+          nodes.map(node =>
+            node.id === parentId
+              ? { ...node, children: [...(node.children || []), newNode] }
+              : node.children
+                ? { ...node, children: update(node.children) }
+                : node
+          );
+        return update(prev);
+      } catch (e: unknown) {
+        setTimeout(() => alert(e instanceof Error ? e.message : 'Error creating folder'), 0);
+        return prev;
+      }
+    });
+    return { id: newId };
+  }, [validateName]);
 
   const deleteNode = useCallback((id: string) => {
     setFiles(prev => {
-      const remove = (nodes: FileNode[]): FileNode[] => {
-        return nodes
+      const remove = (nodes: FileNode[]): FileNode[] =>
+        nodes
           .filter(node => node.id !== id)
-          .map(node => (node.children ? { ...node, children: remove(node.children) } : node));
-      };
+          .map(node =>
+            node.children ? { ...node, children: remove(node.children) } : node
+          );
       return remove(prev);
     });
   }, []);
 
   const renameNode = useCallback((id: string, newName: string) => {
     setFiles(prev => {
-      const update = (nodes: FileNode[]): FileNode[] => {
-        return nodes.map(node => {
-          if (node.id === id) return { ...node, name: newName };
-          if (node.children) return { ...node, children: update(node.children) };
-          return node;
-        });
-      };
-      return update(prev);
+      try {
+        const node = findNode(prev, id);
+        if (!node) return prev;
+
+        const parentId = node.parentId || 'root';
+        const validName = validateName(newName, parentId, prev, id);
+
+        const update = (nodes: FileNode[]): FileNode[] =>
+          nodes.map(n =>
+            n.id === id
+              ? { ...n, name: validName }
+              : n.children
+                ? { ...n, children: update(n.children) }
+                : n
+          );
+        return update(prev);
+      } catch (e: unknown) {
+        setTimeout(() => alert(e instanceof Error ? e.message : 'Error renaming file'), 0);
+        return prev;
+      }
     });
+  }, [findNode, validateName]);
+
+  const importProject = useCallback(async (newFiles: FileNode[]): Promise<void> => {
+    if (Array.isArray(newFiles)) {
+      setFiles(newFiles);
+    }
   }, []);
 
-  const importProject = useCallback(async (newFiles: FileNode[]) => {
-    setFiles(newFiles);
-    await localforage.setItem('codevisualizer_files', newFiles);
-    return newFiles;
+  const resetWorkspace = useCallback((): void => {
+    setFiles([]);
   }, []);
 
-  const resetWorkspace = useCallback(async () => {
-    const defaultFiles: FileNode[] = [
-      { id: '1', name: 'main.py', type: 'file', language: 'python', content: '# Welcome to CodeVisualizer\nprint("Hello World")' }
-    ];
-    setFiles(defaultFiles);
-    await localforage.setItem('codevisualizer_files', defaultFiles);
-  }, []);
+  const exposedFindNode = useCallback((id: string): FileNode | null => findNode(files, id), [files, findNode]);
 
   return {
     files,
@@ -162,7 +222,7 @@ export function useFileSystem() {
     deleteNode,
     renameNode,
     updateNodeContent,
-    findNode: (id: string) => findNode(files, id),
+    findNode: exposedFindNode,
     importProject,
     resetWorkspace
   };

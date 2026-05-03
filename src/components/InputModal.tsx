@@ -44,10 +44,10 @@ export default function InputModal({
   };
 
   const iconColor: Record<string, string> = {
-    java: 'text-orange-500', python: 'text-blue-400',
+    java: 'text-cyan-500', python: 'text-blue-400',
     cpp: 'text-cyan-400', c: 'text-cyan-400',
     javascript: 'text-yellow-400', typescript: 'text-blue-300',
-    go: 'text-cyan-300', rust: 'text-orange-400',
+    go: 'text-cyan-300', rust: 'text-cyan-400',
   };
 
   return (
@@ -71,13 +71,13 @@ export default function InputModal({
             transition={{ type: 'spring', stiffness: 280, damping: 22 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[201] w-full max-w-lg"
           >
-            <div className="bg-[#0d0d10] border border-orange-500/20 rounded-3xl shadow-2xl shadow-orange-500/10 overflow-hidden">
+            <div className="bg-[#0d0d10] border border-cyan-500/20 rounded-3xl shadow-2xl shadow-cyan-500/10 overflow-hidden">
               {/* Header */}
-              <div className="px-6 pt-6 pb-4 border-b border-white/5 bg-orange-500/5">
+              <div className="px-6 pt-6 pb-4 border-b border-white/5 bg-cyan-500/5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-                      <Keyboard size={20} className="text-orange-500" />
+                    <div className="w-11 h-11 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                      <Keyboard size={20} className="text-cyan-500" />
                     </div>
                     <div>
                       <h2 className="text-sm font-black text-white">Program Input Required</h2>
@@ -102,7 +102,7 @@ export default function InputModal({
                   <div className="space-y-1">
                     {requirement.hints.map((hint, i) => (
                       <div key={i} className="flex items-center gap-2 text-[10px] text-gray-400">
-                        <ChevronRight size={10} className="text-orange-500/50 shrink-0" />
+                        <ChevronRight size={10} className="text-cyan-500/50 shrink-0" />
                         {hint}
                       </div>
                     ))}
@@ -133,7 +133,7 @@ export default function InputModal({
                       : 'e.g.  hello world\n42'
                   }
                   rows={6}
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-orange-500/50 resize-none transition-all leading-relaxed custom-scrollbar"
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm font-mono text-gray-200 placeholder-gray-700 focus:outline-none focus:border-cyan-500/50 resize-none transition-all leading-relaxed custom-scrollbar"
                   spellCheck={false}
                 />
                 <p className="mt-1.5 text-[9px] text-gray-600">
@@ -167,7 +167,7 @@ export default function InputModal({
                   className={cn(
                     'flex-1 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 transition-all',
                     value.trim()
-                      ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20'
+                      ? 'bg-cyan-500 text-white hover:bg-cyan-600 shadow-lg shadow-cyan-500/20'
                       : 'bg-white/5 text-gray-600 cursor-not-allowed',
                   )}
                 >

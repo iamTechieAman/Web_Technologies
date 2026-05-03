@@ -21,6 +21,8 @@ export function generateFlowchartData(code: string, currentLine?: number): FlowG
       if (content === '{' || content === '}' || content === '};') return false;
       if (content.startsWith('//') || content.startsWith('/*') || content.startsWith('*')) return false;
       if (content.startsWith('import ') || content.startsWith('package ') || content.startsWith('using ')) return false;
+      if (/^(?:public\s+)?class\s+\w+\s*\{?$/.test(content)) return false;
+      if (/^(?:public\s+)?static\s+void\s+main\s*\(/.test(content)) return false;
       return true;
     });
 
@@ -30,7 +32,6 @@ export function generateFlowchartData(code: string, currentLine?: number): FlowG
   let yOffset = 0;
   const NODE_GAP = 90;
   const CENTER_X = 220;
-  const BRANCH_OFFSET = 140;
 
   /** Check if a line is the currently active one. */
   const isActive = (lineNum: number) => lineNum === currentLine;

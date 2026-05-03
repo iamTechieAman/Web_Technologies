@@ -1,6 +1,7 @@
 /**
  * Generalized Scraper Utilities
  */
+import { safeArray, safeAsync } from './safe';
 
 export interface ScrapedProblem {
   title: string;
@@ -65,8 +66,8 @@ export async function fetchLeetCodeProblems(limit = 100) {
       variables: { categorySlug: "", limit, skip: 0, filters: {} }
     })
   });
-  const data = await res.json();
-  return data.data.problemsetQuestionList.questions;
+  const data = await safeAsync<Record<string, any> | null>(() => res.json(), null);
+  return safeArray(data?.data?.problemsetQuestionList?.questions);
 }
 
 export async function fetchLeetCodeProblemDetails(titleSlug: string) {
@@ -96,14 +97,14 @@ export async function fetchLeetCodeProblemDetails(titleSlug: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables: { titleSlug } })
   });
-  const data = await res.json();
-  return data.data.question;
+  const data = await safeAsync<Record<string, any> | null>(() => res.json(), null);
+  return data?.data?.question ?? null;
 }
 
 export function cleanHtml(html: string): string {
   if (!html) return '';
   return html
-    .replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (m, p1) => `\n\`\`\`\n${p1.replace(/<[^>]+>/g, '')}\n\`\`\`\n`)
+    .replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_m, p1) => `\n\`\`\`\n${p1.replace(/<[^>]+>/g, '')}\n\`\`\`\n`)
     .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, ' `$1` ')
     .replace(/<p[^>]*>/gi, '\n\n')
     .replace(/<br[^>]*>/gi, '\n')

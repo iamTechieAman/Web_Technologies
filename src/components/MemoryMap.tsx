@@ -5,10 +5,10 @@ import { Box, Hash, Braces, Binary, Quote, Type } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MemoryMapProps {
-  variables: Record<string, { value: any; type: string }>;
+  variables: Record<string, { value: unknown; type: string }>;
 }
 
-function typeIcon(type: string) {
+function typeIcon(type: string): React.ReactNode {
   switch (type) {
     case 'number':  return <Hash size={11} />;
     case 'array':   return <Braces size={11} />;
@@ -18,8 +18,8 @@ function typeIcon(type: string) {
   }
 }
 
-function formatValue(val: any, type: string): string {
-  if (Array.isArray(val)) return `[${val.join(', ')}]`;
+function formatValue(val: unknown, type: string): string {
+  if (Array.isArray(val)) return `[${(val as unknown[]).join(', ')}]`;
   if (type === 'string') return `"${val}"`;
   return String(val);
 }
@@ -34,8 +34,8 @@ function typeColor(type: string): string {
   }
 }
 
-export default function MemoryMap({ variables }: MemoryMapProps) {
-  const prevRef = useRef<Record<string, any>>({});
+export default function MemoryMap({ variables }: MemoryMapProps): React.ReactNode {
+  const prevRef = useRef<Record<string, unknown>>({});
   const varKeys = Object.keys(variables);
 
   // Track which keys changed this render
@@ -53,10 +53,10 @@ export default function MemoryMap({ variables }: MemoryMapProps) {
     }
     setChangedKeys(changed);
     // Update prev snapshot
-    const next: Record<string, any> = {};
+    const next: Record<string, unknown> = {};
     for (const k of varKeys) next[k] = variables[k]?.value;
     prevRef.current = next;
-  }, [variables]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [variables, varKeys]);
 
   if (varKeys.length === 0) {
     return (
@@ -65,7 +65,7 @@ export default function MemoryMap({ variables }: MemoryMapProps) {
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Memory Empty</p>
           <p className="text-[9px] text-gray-600 mt-1 max-w-[180px] leading-relaxed">
-            Assign a variable (e.g. <code className="text-orange-500">int x = 5</code>) and step through your code to see memory here.
+            Assign a variable (e.g. <code className="text-cyan-500">int x = 5</code>) and step through your code to see memory here.
           </p>
         </div>
       </div>

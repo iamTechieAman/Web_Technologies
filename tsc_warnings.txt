@@ -1,0 +1,152 @@
+src/app/api/ai/route.ts(178,32): error TS6133: 'mode' is declared but its value is never read.
+src/app/api/ai/route.ts(182,13): error TS6133: 'lastMessage' is declared but its value is never read.
+src/app/api/cron/fetch-problems/route.ts(3,1): error TS6133: 'fs' is declared but its value is never read.
+src/app/api/cron/fetch-problems/route.ts(4,1): error TS6133: 'path' is declared but its value is never read.
+src/app/api/git/clone/route.ts(36,11): error TS6133: 'filesMap' is declared but its value is never read.
+src/app/api/git/clone/route.ts(47,13): error TS6133: 'path' is declared but its value is never read.
+src/app/api/tracer/route.ts(2,10): error TS6133: 'execSync' is declared but its value is never read.
+src/app/page.tsx(5,46): error TS6133: 'ChevronRight' is declared but its value is never read.
+src/app/workspace/page.tsx(3,1): error TS6133: 'Header' is declared but its value is never read.
+src/app/workspace/page.tsx(5,1): error TS6133: 'Loader2' is declared but its value is never read.
+src/components/AIAssistant.tsx(7,39): error TS6133: 'AlertTriangle' is declared but its value is never read.
+src/components/AIAssistant.tsx(8,3): error TS6133: 'Code' is declared but its value is never read.
+src/components/AIAssistant.tsx(8,9): error TS6133: 'FileText' is declared but its value is never read.
+src/components/AIAssistant.tsx(8,19): error TS6133: 'HelpCircle' is declared but its value is never read.
+src/components/AIAssistant.tsx(8,31): error TS6133: 'MessageSquare' is declared but its value is never read.
+src/components/AIAssistant.tsx(85,3): error TS6133: 'files' is declared but its value is never read.
+src/components/AIAssistant.tsx(87,9): error TS6198: All destructured elements are unused.
+src/components/AIAssistant.tsx(92,10): error TS6133: 'copiedCode' is declared but its value is never read.
+src/components/AIAssistant.tsx(92,22): error TS6133: 'setCopiedCode' is declared but its value is never read.
+src/components/AIAssistant.tsx(93,28): error TS6133: 'setStreamingMessage' is declared but its value is never read.
+src/components/AIAssistant.tsx(94,10): error TS6133: 'activePersona' is declared but its value is never read.
+src/components/AIAssistant.tsx(94,25): error TS6133: 'setActivePersona' is declared but its value is never read.
+src/components/AIAssistant.tsx(119,9): error TS6133: 'handleClear' is declared but its value is never read.
+src/components/AlgorithmRoadmap.tsx(3,32): error TS6133: 'ArrowRight' is declared but its value is never read.
+src/components/ArrayView.tsx(2,17): error TS6133: 'useMemo' is declared but its value is never read.
+src/components/CodeAnalysis.tsx(3,18): error TS6133: 'Zap' is declared but its value is never read.
+src/components/CodeAnalysis.tsx(3,23): error TS6133: 'BarChart3' is declared but its value is never read.
+src/components/CodeAnalysis.tsx(3,51): error TS6133: 'Cpu' is declared but its value is never read.
+src/components/CodeAnalysis.tsx(3,75): error TS6133: 'ArrowRight' is declared but its value is never read.
+src/components/CommandPalette.tsx(2,28): error TS6133: 'useState' is declared but its value is never read.
+src/components/CommandPalette.tsx(5,3): error TS6133: 'Play' is declared but its value is never read.
+src/components/CommandPalette.tsx(5,9): error TS6133: 'Download' is declared but its value is never read.
+src/components/CommandPalette.tsx(5,19): error TS6133: 'Trash2' is declared but its value is never read.
+src/components/CommandPalette.tsx(5,27): error TS6133: 'FilePlus' is declared but its value is never read.
+src/components/CommandPalette.tsx(5,37): error TS6133: 'FolderPlus' is declared but its value is never read.
+src/components/CommandPalette.tsx(6,23): error TS6133: 'TerminalIcon' is declared but its value is never read.
+src/components/CommandPalette.tsx(6,37): error TS6133: 'Sparkles' is declared but its value is never read.
+src/components/CommandPalette.tsx(6,47): error TS6133: 'Activity' is declared but its value is never read.
+src/components/EditorPanel.tsx(6,30): error TS6133: 'Terminal' is declared but its value is never read.
+src/components/EditorPanel.tsx(6,40): error TS6133: 'Search' is declared but its value is never read.
+src/components/EditorPanel.tsx(6,48): error TS6133: 'GitBranch' is declared but its value is never read.
+src/components/EditorPanel.tsx(6,59): error TS6133: 'Puzzle' is declared but its value is never read.
+src/components/EditorPanel.tsx(6,67): error TS6133: 'User' is declared but its value is never read.
+src/components/EditorPanel.tsx(33,11): error TS6133: 'theme' is declared but its value is never read.
+src/components/EditorPanel.tsx(101,11): error TS6133: 'accumulatedCode' is declared but its value is never read.
+src/components/EnhancedAIAssistant.tsx(13,1): error TS6192: All imports in import declaration are unused.
+src/components/EnhancedAIAssistant.tsx(120,3): error TS6133: 'onCodeCopy' is declared but its value is never read.
+src/components/EnhancedAIAssistant.tsx(188,9): error TS6198: All destructured elements are unused.
+src/components/EnhancedInputPanel.tsx(5,37): error TS6133: 'Keyboard' is declared but its value is never read.
+src/components/EnhancedInputPanel.tsx(6,9): error TS6133: 'Zap' is declared but its value is never read.
+src/components/EnhancedInputPanel.tsx(6,14): error TS6133: 'CheckCircle' is declared but its value is never read.
+src/components/ErrorBoundary.tsx(4,1): error TS6133: 'cn' is declared but its value is never read.
+src/components/Explorer.tsx(5,31): error TS6133: 'Filter' is declared but its value is never read.
+src/components/Explorer.tsx(6,3): error TS6133: 'MoreVertical' is declared but its value is never read.
+src/components/Explorer.tsx(6,24): error TS6133: 'Download' is declared but its value is never read.
+src/components/GitImportModal.tsx(14,9): error TS6198: All destructured elements are unused.
+src/components/HintPanel.tsx(2,27): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/IDE.tsx(2,60): error TS6133: 'useRef' is declared but its value is never read.
+src/components/IDE.tsx(5,9): error TS6133: 'Code2' is declared but its value is never read.
+src/components/IDE.tsx(5,16): error TS6133: 'Sparkles' is declared but its value is never read.
+src/components/IDE.tsx(5,26): error TS6133: 'BookOpen' is declared but its value is never read.
+src/components/IDE.tsx(6,29): error TS6133: 'Activity' is declared but its value is never read.
+src/components/IDE.tsx(7,3): error TS6133: 'Search' is declared but its value is never read.
+src/components/IDE.tsx(7,18): error TS6133: 'Menu' is declared but its value is never read.
+src/components/IDE.tsx(28,7): error TS6133: 'AIAssistant' is declared but its value is never read.
+src/components/IDE.tsx(30,7): error TS6133: 'ProblemDescription' is declared but its value is never read.
+src/components/IDE.tsx(37,7): error TS6133: 'EnhancedInputPanel' is declared but its value is never read.
+src/components/IDE.tsx(49,38): error TS6133: 'ExecutionResult' is declared but its value is never read.
+src/components/IDE.tsx(66,11): error TS6133: 'theme' is declared but its value is never read.
+src/components/IDE.tsx(66,18): error TS6133: 'toggleTheme' is declared but its value is never read.
+src/components/IDE.tsx(70,24): error TS6133: 'setResult' is declared but its value is never read.
+src/components/IDE.tsx(73,10): error TS6133: 'isPending' is declared but its value is never read.
+src/components/IDE.tsx(83,26): error TS6133: 'setRunTriggerTick' is declared but its value is never read.
+src/components/IDE.tsx(89,25): error TS6133: 'setProgramOutput' is declared but its value is never read.
+src/components/IDE.tsx(90,10): error TS6133: 'inputRequirement' is declared but its value is never read.
+src/components/IDE.tsx(650,38): error TS6133: 'isDark' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(5,22): error TS6133: 'AlertTriangle' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(5,37): error TS6133: 'Keyboard' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(5,47): error TS6133: 'ChevronRight' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(6,3): error TS6133: 'Info' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(6,9): error TS6133: 'Zap' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(35,31): error TS6133: 'currentStdin' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(35,45): error TS6133: 'requirement' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(35,68): error TS6133: 'isExecuting' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(35,81): error TS6133: 'lastError' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(160,13): error TS6133: 'finalInput' is declared but its value is never read.
+src/components/InteractiveInputManager.tsx(334,65): error TS6133: 'index' is declared but its value is never read.
+src/components/LivePreview.tsx(14,46): error TS6133: 'activeFileId' is declared but its value is never read.
+src/components/MetricsPanel.tsx(4,3): error TS6133: 'BarChart3' is declared but its value is never read.
+src/components/MetricsPanel.tsx(5,3): error TS6133: 'ArrowUpDown' is declared but its value is never read.
+src/components/MetricsPanel.tsx(5,28): error TS6133: 'Hash' is declared but its value is never read.
+src/components/OutputPanel.tsx(4,29): error TS6133: 'AlertCircle' is declared but its value is never read.
+src/components/OutputPanel.tsx(7,1): error TS6133: 'cn' is declared but its value is never read.
+src/components/PlaybackControls.tsx(5,30): error TS6133: 'FastForward' is declared but its value is never read.
+src/components/PlaybackControls.tsx(6,3): error TS6133: 'RotateCcw' is declared but its value is never read.
+src/components/PlaybackControls.tsx(37,9): error TS6198: All destructured elements are unused.
+src/components/ProblemLibrary.tsx(11,9): error TS6133: 'theme' is declared but its value is never read.
+src/components/RecursionVisualizer.tsx(4,18): error TS6133: 'ChevronDown' is declared but its value is never read.
+src/components/RecursionVisualizer.tsx(20,9): error TS6133: 'stack' is declared but its value is never read.
+src/components/TerminalPanel.tsx(24,11): error TS6133: 'theme' is declared but its value is never read.
+src/components/TerminalPanel.tsx(24,26): error TS6133: 'isDark' is declared but its value is never read.
+src/components/TerminalPanel.tsx(93,11): error TS6133: '_escapedCode' is declared but its value is never read.
+src/components/TerminalPanel.tsx(233,9): error TS6133: 'handleTerminalInput' is declared but its value is never read.
+src/components/TreeView.tsx(5,1): error TS6133: 'cn' is declared but its value is never read.
+src/components/TreeView.tsx(137,19): error TS6133: 'bckgDimensions' is declared but its value is never read.
+src/components/UniversalVisualizer.tsx(2,27): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/UniversalVisualizer.tsx(3,18): error TS6133: 'AnimatePresence' is declared but its value is never read.
+src/components/UniversalVisualizer.tsx(5,44): error TS6133: 'Code' is declared but its value is never read.
+src/components/UniversalVisualizer.tsx(5,50): error TS6133: 'Zap' is declared but its value is never read.
+src/components/UniversalVisualizer.tsx(33,47): error TS6133: 'code' is declared but its value is never read.
+src/components/UniversalVisualizer.tsx(231,38): error TS6133: 'language' is declared but its value is never read.
+src/components/UniversalVisualizer.tsx(272,37): error TS6133: 'language' is declared but its value is never read.
+src/components/UniversalVisualizer.tsx(315,28): error TS6198: All destructured elements are unused.
+src/components/UniversalVisualizer.tsx(333,29): error TS6198: All destructured elements are unused.
+src/components/UniversalVisualizer.tsx(351,28): error TS6198: All destructured elements are unused.
+src/components/UniversalVisualizer.tsx(369,37): error TS6133: 'language' is declared but its value is never read.
+src/components/UniversalVisualizer.tsx(402,28): error TS6198: All destructured elements are unused.
+src/components/UniversalVisualizer.tsx(420,35): error TS6198: All destructured elements are unused.
+src/components/VisualizerPanel.tsx(2,27): error TS6133: 'useMemo' is declared but its value is never read.
+src/components/VisualizerPanel.tsx(12,10): error TS6133: 'useTheme' is declared but its value is never read.
+src/components/VisualizerPanel.tsx(40,6): error TS6196: 'TabType' is declared but never used.
+src/components/VisualizerPanel.tsx(43,70): error TS6133: '_language' is declared but its value is never read.
+src/components/VisualizerPanel.tsx(46,9): error TS6133: 'themeClasses' is declared but its value is never read.
+src/components/VSCodeActivityBar.tsx(22,9): error TS6198: All destructured elements are unused.
+src/components/VSCodeSidebar.tsx(3,63): error TS6133: 'Plus' is declared but its value is never read.
+src/components/VSCodeSidebar.tsx(3,69): error TS6133: 'RefreshCw' is declared but its value is never read.
+src/components/VSCodeSidebar.tsx(3,80): error TS6133: 'Download' is declared but its value is never read.
+src/components/VSCodeSidebar.tsx(3,90): error TS6133: 'GitBranch' is declared but its value is never read.
+src/components/VSCodeSidebar.tsx(36,9): error TS6198: All destructured elements are unused.
+src/components/VSCodeSidebar.tsx(40,10): error TS6133: 'importing' is declared but its value is never read.
+src/context/ThemeContext.tsx(221,11): error TS6133: 'colors' is declared but its value is never read.
+src/hooks/useDefaultExtensions.ts(4,1): error TS6192: All imports in import declaration are unused.
+src/lib/complexityAnalyzer.ts(9,9): error TS6133: 'trimmed' is declared but its value is never read.
+src/lib/explainStep.ts(3,58): error TS6133: 'code' is declared but its value is never read.
+src/lib/explainStep.ts(3,72): error TS6133: 'language' is declared but its value is never read.
+src/lib/extensions/index.ts(28,11): error TS6133: 'extensions' is declared but its value is never read.
+src/lib/fileIcons.tsx(5,3): error TS6133: 'Braces' is declared but its value is never read.
+src/lib/fileIcons.tsx(5,11): error TS6133: 'Box' is declared but its value is never read.
+src/lib/fileIcons.tsx(5,16): error TS6133: 'FileEdit' is declared but its value is never read.
+src/lib/fileIcons.tsx(5,26): error TS6133: 'FileSearch' is declared but its value is never read.
+src/lib/fileIcons.tsx(5,38): error TS6133: 'Settings' is declared but its value is never read.
+src/lib/fileIcons.tsx(5,48): error TS6133: 'Book' is declared but its value is never read.
+src/lib/fileIcons.tsx(6,12): error TS6133: 'ImageIcon' is declared but its value is never read.
+src/lib/fileIcons.tsx(6,23): error TS6133: 'Video' is declared but its value is never read.
+src/lib/fileIcons.tsx(6,30): error TS6133: 'Music' is declared but its value is never read.
+src/lib/fileIcons.tsx(8,1): error TS6133: 'SupportedLanguage' is declared but its value is never read.
+src/lib/fileIcons.tsx(10,47): error TS6133: 'language' is declared but its value is never read.
+src/lib/flowchartGenerator.ts(35,9): error TS6133: 'BRANCH_OFFSET' is declared but its value is never read.
+src/lib/inputDetector.ts(102,33): error TS6133: 'language' is declared but its value is never read.
+src/lib/scraper-utils.ts(107,48): error TS6133: 'm' is declared but its value is never read.
+src/lib/stepExecutor.ts(8,54): error TS6133: 'language' is declared but its value is never read.
+src/lib/utils.ts(1,29): error TS6133: 'LanguageConfig' is declared but its value is never read.

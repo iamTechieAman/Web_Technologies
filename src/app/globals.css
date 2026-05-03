@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+.bg-grid-pattern {
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+  background-size: 32px 32px;
+  color: rgba(255, 255, 255, 0.03);
+}
+
+.light .bg-grid-pattern {
+  color: rgba(0, 0, 0, 0.05);
+}
+
 @layer base {
   :root {
     --background: 240 10% 3.9%;
@@ -31,20 +41,49 @@
   }
   
   body {
-    background-color: #050507;
+    background-color: #0B0D17;
     color: hsl(var(--foreground));
-    @apply antialiased selection:bg-orange-500/30;
-    font-feature-settings: "cv11", "ss01";
+    @apply antialiased selection:bg-cyan-500/30 overflow-x-hidden;
+    font-feature-settings: "cv11", "ss01", "cv01";
+    text-rendering: optimizeLegibility;
+  }
+
+  button, a {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  html,
+  body {
+    min-height: 100%;
+    margin: 0;
+  }
+
+  .reduce-motion *,
+  .reduce-motion *::before,
+  .reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
 @layer components {
   .glass-panel {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-2xl;
+    @apply bg-[#141725]/40 backdrop-blur-xl border border-white/5 shadow-2xl;
+  }
+  
+  .glass-card {
+    @apply bg-white/[0.03] backdrop-blur-md border border-white/5 rounded-2xl transition-all duration-300 hover:bg-white/[0.05] hover:border-white/10;
+  }
+  
+  .glass-button {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-xl transition-all duration-300 hover:bg-white/10 active:scale-95;
   }
 
-  .glass-card {
-    @apply bg-white/[0.02] backdrop-blur-md border border-white/[0.05] rounded-3xl shadow-xl;
+  .accent-glow {
+    @apply shadow-[0_0_20px_rgba(6,182,212,0.2)] hover:shadow-[0_0_30px_rgba(6,182,212,0.4)];
   }
 
   .glass-pill {
@@ -55,7 +94,7 @@
     @apply bg-clip-text text-transparent bg-gradient-to-br from-white via-white/90 to-white/40;
   }
 
-  .orange-glow {
+  .cyan-glow {
     @apply shadow-[0_0_50px_-12px_rgba(249,115,22,0.5)];
   }
 
@@ -64,11 +103,11 @@
   }
 
   .neon-border {
-    @apply border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)];
+    @apply border-cyan-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)];
   }
 
   .neon-text-orange {
-    @apply text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)];
+    @apply text-cyan-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)];
   }
 
   .neon-text-blue {
@@ -99,5 +138,84 @@
 
 .typewriter-cursor::after {
   content: '|';
-  @apply animate-pulse ml-0.5 text-orange-500 font-bold;
+  @apply animate-pulse ml-0.5 text-cyan-500 font-bold;
+}
+
+/* Graphviz Dark Mode Fixes */
+.graphviz-container svg {
+  @apply max-w-none;
+  background: transparent !important;
+}
+
+.graphviz-container svg text {
+  @apply fill-white/80 font-medium;
+  font-family: 'Inter', system-ui, sans-serif !important;
+}
+
+.graphviz-container svg path, 
+.graphviz-container svg polygon, 
+.graphviz-container svg ellipse {
+  @apply transition-colors duration-300;
+  stroke: rgba(255, 255, 255, 0.1) !important;
+}
+
+.graphviz-container svg g.node:hover ellipse,
+.graphviz-container svg g.node:hover polygon {
+  stroke: rgba(6, 182, 212, 0.8) !important;
+  stroke-width: 2px !important;
+}
+
+.graphviz-container svg g.node:hover text {
+  @apply fill-cyan-400;
+}
+
+/* Performance Optimizations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Quick Response Buttons */
+button:active {
+  transform: scale(0.96);
+  transition-duration: 50ms;
+}
+
+/* Smooth layout transitions */
+.layout-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.4);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.2) transparent;
 }

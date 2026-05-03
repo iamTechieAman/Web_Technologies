@@ -1,8 +1,8 @@
 'use client';
 import React, { useMemo } from 'react';
 import { 
-  BarChart3, Clock, Database, Cpu, Layers, Zap, Trophy, 
-  ArrowUpDown, GitCompare, Hash, Activity, ShieldCheck, Gauge
+  Clock, Database, Cpu, Layers, Zap, Trophy, 
+  GitCompare, Activity, ShieldCheck, Gauge
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ExecutionResult, ComplexityResult } from '@/types';
@@ -61,11 +61,11 @@ export default function MetricsPanel({ code, result, complexity }: MetricsPanelP
         {/* Health Score Gauge */}
         <div className="p-5 bg-gradient-to-br from-[#111118] to-[#0a0a0c] border border-gray-800 rounded-3xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Trophy size={64} className="text-orange-500" />
+            <Trophy size={64} className="text-cyan-500" />
           </div>
           <div className="relative z-10 space-y-4">
             <div className="flex items-center gap-2">
-              <Gauge size={14} className="text-orange-500" />
+              <Gauge size={14} className="text-cyan-500" />
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Stability Index</span>
             </div>
             <div className="flex items-end gap-2">
@@ -75,7 +75,7 @@ export default function MetricsPanel({ code, result, complexity }: MetricsPanelP
             {/* Progress Bar */}
             <div className="h-1.5 w-full bg-gray-900 rounded-full overflow-hidden border border-gray-800">
               <div 
-                className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full transition-all duration-1000 ease-out"
+                className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full transition-all duration-1000 ease-out"
                 style={{ width: `${codeStats.finalScore}%` }}
               />
             </div>

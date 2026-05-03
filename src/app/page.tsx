@@ -2,17 +2,17 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Code2, Sparkles, Activity, Library, ChevronRight, Play, Terminal, Layers } from 'lucide-react';
+import { Code2, Sparkles, Activity, Library, Play, Terminal, Layers } from 'lucide-react';
 import Header from '@/components/Header';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen w-full bg-[#050507] text-white selection:bg-orange-500/30 flex flex-col">
+    <div className="min-h-screen w-full bg-[#050507] text-white selection:bg-cyan-500/30 flex flex-col">
       <Header />
       
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-500/10 rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[20%] right-[-10%] w-[30%] h-[30%] bg-blue-500/10 rounded-full blur-[100px]" />
       </div>
 
@@ -23,7 +23,7 @@ export default function LandingPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-900 border border-gray-800 text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 mb-8"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-900 border border-gray-800 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500 mb-8"
             >
               <Sparkles size={14} /> The Future of Algorithm Learning
             </motion.div>
@@ -35,7 +35,7 @@ export default function LandingPage() {
               className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.9]"
             >
               Visualize. Debug. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-orange-400 to-yellow-500">Master DSA.</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-cyan-400 to-yellow-500">Master DSA.</span>
             </motion.h1>
 
             <motion.p 
@@ -59,8 +59,8 @@ export default function LandingPage() {
                   Explore Library <Library size={18} />
                 </button>
               </Link>
-              <Link href="/problems/two-sum">
-                <button className="px-12 py-4 bg-gray-900 border border-gray-800 text-white font-black uppercase tracking-widest text-xs rounded-2xl flex items-center gap-3 hover:bg-gray-800 transition-all">
+              <Link href="/workspace">
+                <button className="px-12 py-4 bg-gray-900 border border-gray-800 text-white font-black uppercase tracking-widest text-xs rounded-2xl flex items-center gap-3 hover:bg-gray-800 active:scale-95 transition-all shadow-2xl hover:shadow-cyan-500/10">
                   Open IDE <Play size={18} fill="currentColor" />
                 </button>
               </Link>
@@ -74,7 +74,7 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 {
-                  icon: <Activity className="text-orange-500" />,
+                  icon: <Activity className="text-cyan-500" />,
                   title: "Step-by-Step Visuals",
                   desc: "Watch your algorithms come to life with animated state transitions for arrays, trees, and recursion."
                 },
@@ -95,7 +95,8 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="p-8 bg-gray-900/30 border border-gray-800 rounded-3xl hover:border-orange-500/30 transition-colors group"
+                  style={{ transform: 'translateZ(0)' }}
+                  className="p-8 bg-gray-900/30 border border-gray-800 rounded-3xl hover:border-cyan-500/30 transition-all duration-300 group cursor-default"
                 >
                   <div className="w-12 h-12 rounded-2xl bg-gray-900 border border-gray-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-xl">
                     {f.icon}
@@ -112,7 +113,7 @@ export default function LandingPage() {
         <section className="py-24 px-6 overflow-hidden">
           <div className="max-w-6xl mx-auto">
             <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-orange-600 to-blue-600 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition-opacity" />
+              <div className="absolute -inset-1 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition-opacity" />
               <div className="relative bg-[#0a0a0c] border border-gray-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
                 {/* Mock Browser Header */}
                 <div className="h-12 border-b border-gray-800 flex items-center px-6 gap-2 bg-black/40">
@@ -129,7 +130,7 @@ export default function LandingPage() {
                 <div className="h-[500px] flex items-center justify-center bg-grid-white/[0.02] relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0c]" />
                   <div className="z-10 text-center">
-                    <Layers size={64} className="text-orange-500 mx-auto mb-6 opacity-20" />
+                    <Layers size={64} className="text-cyan-500 mx-auto mb-6 opacity-20" />
                     <h2 className="text-3xl font-black mb-4">A Truly Professional Experience</h2>
                     <p className="text-gray-600 text-sm italic">Monaco Editor • React Flow • Force Graph • xterm.js</p>
                   </div>
@@ -144,7 +145,7 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto bg-gradient-to-b from-gray-900/50 to-transparent border border-gray-800 p-16 rounded-[4rem]">
             <h2 className="text-4xl font-black mb-8">Ready to evolve your coding?</h2>
             <Link href="/problems">
-              <button className="px-16 py-5 bg-orange-500 text-white font-black uppercase tracking-[0.3em] text-xs rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_50px_rgba(249,115,22,0.3)]">
+              <button className="px-16 py-5 bg-cyan-500 text-white font-black uppercase tracking-[0.3em] text-xs rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_50px_rgba(249,115,22,0.3)]">
                 Start Solving Now
               </button>
             </Link>
@@ -154,7 +155,7 @@ export default function LandingPage() {
 
       <footer className="py-12 px-6 border-t border-gray-800 text-center">
         <div className="flex items-center justify-center gap-2 mb-6">
-          <Code2 size={24} className="text-orange-500" />
+          <Code2 size={24} className="text-cyan-500" />
           <span className="text-lg font-black tracking-tighter">CodeVisualizer</span>
         </div>
         <p className="text-gray-600 text-xs font-bold uppercase tracking-widest">

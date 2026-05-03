@@ -115,7 +115,7 @@ export default function AIAssistantWorkspace({ code, language, problemTitle, pro
       <div className="p-3 border-b border-gray-800/50 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-orange-500" />
+            <Sparkles size={14} className="text-cyan-500" />
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">AI Assistant</span>
           </div>
           <button onClick={() => setMessages([])} className="text-gray-600 hover:text-red-500 transition-colors">
@@ -150,14 +150,14 @@ export default function AIAssistantWorkspace({ code, language, problemTitle, pro
           )}>
             <div className={cn(
               "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
-              msg.role === 'user' ? "bg-orange-500/20 text-orange-500" : "bg-blue-500/20 text-blue-400"
+              msg.role === 'user' ? "bg-cyan-500/20 text-cyan-500" : "bg-blue-500/20 text-blue-400"
             )}>
               {msg.role === 'user' ? <User size={12} /> : <Bot size={12} />}
             </div>
             <div className={cn(
               "max-w-[85%] rounded-2xl p-3 text-[11px] leading-relaxed whitespace-pre-wrap",
               msg.role === 'user' 
-                ? "bg-orange-500 text-white rounded-tr-none" 
+                ? "bg-cyan-500 text-white rounded-tr-none" 
                 : cn("bg-gray-900 border text-gray-300 rounded-tl-none", msg.isError ? "border-red-500/50 text-red-400" : "border-gray-800")
             )}>
               {msg.isError && <AlertCircle size={10} className="inline mr-2 text-red-500" />}
@@ -174,12 +174,12 @@ export default function AIAssistantWorkspace({ code, language, problemTitle, pro
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask AI anything..."
-            className="w-full bg-[#050507] border border-gray-800 rounded-xl py-2.5 pl-4 pr-12 text-xs text-gray-300 focus:outline-none focus:border-orange-500/50 transition-all placeholder:text-gray-700"
+            className="w-full bg-[#050507] border border-gray-800 rounded-xl py-2.5 pl-4 pr-12 text-xs text-gray-300 focus:outline-none focus:border-cyan-500/50 transition-all placeholder:text-gray-700"
           />
           <button 
             type="submit" 
             disabled={!input.trim() || loading}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-cyan-500 text-white flex items-center justify-center hover:bg-cyan-600 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           </button>

@@ -1,25 +1,29 @@
 'use client';
 import dynamic from 'next/dynamic';
-import Header from '@/components/Header';
 import { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const IDE = dynamic(() => import('@/components/IDE'), { 
   ssr: false,
   loading: () => (
-    <div className="h-screen w-full flex flex-col items-center justify-center bg-[#0a0a0c] text-orange-500 gap-4">
-      <Loader2 className="animate-spin" size={48} />
-      <p className="text-xs font-black uppercase tracking-widest animate-pulse">Initializing Advanced Workspace...</p>
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-[#0B0D17] text-cyan-500 gap-6">
+      <div className="relative w-16 h-16">
+        <div className="absolute inset-0 border-4 border-cyan-500/10 rounded-2xl" />
+        <div className="absolute inset-0 border-4 border-t-cyan-500 rounded-2xl animate-spin" />
+      </div>
+      <p className="text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Initializing CodeVisualizer v4.0</p>
     </div>
   )
 });
 
 export default function WorkspacePage() {
   return (
-    <main className="h-screen overflow-hidden">
-      <Suspense fallback={null}>
-        <IDE />
-      </Suspense>
+    <main className="h-screen overflow-hidden bg-[#0B0D17]">
+      <ErrorBoundary>
+        <Suspense fallback={null}>
+          <IDE />
+        </Suspense>
+      </ErrorBoundary>
     </main>
   );
 }

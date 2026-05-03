@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Shield, Zap, BarChart3, Clock, Database, Cpu, Layers, GitBranch, ArrowRight, RefreshCw } from 'lucide-react';
+import { Shield, Clock, Database, Layers, GitBranch, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeComplexity } from '@/lib/complexityAnalyzer';
 
@@ -78,7 +78,7 @@ export default function CodeAnalysis({ code }: CodeAnalysisProps) {
             { label: 'Lines of Code', value: nonEmptyLines, color: 'text-blue-400' },
             { label: 'Comments', value: commentLines, color: 'text-green-400' },
             { label: 'Loops', value: loopCount, color: 'text-yellow-400' },
-            { label: 'Conditionals', value: condCount, color: 'text-orange-400' },
+            { label: 'Conditionals', value: condCount, color: 'text-cyan-400' },
             { label: 'Functions', value: funcCount, color: 'text-purple-400' },
           ].map(s => (
             <div key={s.label} className="flex items-center justify-between py-1 px-2 bg-gray-800/20 rounded">

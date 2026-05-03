@@ -48,7 +48,7 @@ export default function ArrayVisualizer({ data, accessedIndices = [], updatedInd
                 </motion.div>
                 <span className={cn(
                   "text-[9px] font-mono",
-                  isUpdated ? "text-orange-500 font-bold" : isAccessed ? "text-blue-500 font-bold" : "text-gray-600"
+                  isUpdated ? "text-cyan-500 font-bold" : isAccessed ? "text-blue-500 font-bold" : "text-gray-600"
                 )}>
                   {val}
                 </span>

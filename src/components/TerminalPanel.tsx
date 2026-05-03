@@ -3,411 +3,322 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import 'xterm/css/xterm.css';
-import {
-  X, Trash2, Command, Wifi, WifiOff, Square, Loader2,
-} from 'lucide-react';
+import { X, Trash2, Command, Copy, Check, Keyboard, Play, AlertCircle, Sparkles as SparklesIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const EXEC_WS_URL = 'ws://localhost:8765';
-const EXEC_HTTP_URL = 'http://localhost:8765';
-
-type ServerStatus = 'checking' | 'connected' | 'offline';
-type RunStatus    = 'idle' | 'compiling' | 'running' | 'done';
+import { ExecutionResult } from '@/types';
+import { useTheme, useThemeClasses } from '@/context/ThemeContext';
 
 interface TerminalPanelProps {
   onClose: () => void;
-  /** Batch fallback: for non-interactive commands ("run", "ls", etc.) */
-  onRunCommand: (cmd: string) => Promise<string>;
-  /** IDE calls this with a fn it can invoke to trigger a run imperatively */
-  onRegisterRunTrigger?: (fn: () => void) => void;
-  /** Called when the user types "run" in interactive mode — provides code+language */
-  activeCode?: string;
-  activeLanguage?: string;
+  result: ExecutionResult | null;
+  loading: boolean;
+  runTriggerTick?: number;
+  language?: string;
+  code?: string;
+  onStdinChange?: (stdin: string) => void;
+  initialStdin?: string;
 }
 
+type TerminalProtocol = 'pty' | 'exec';
+
 export default function TerminalPanel({
-  onClose, onRunCommand, activeCode, activeLanguage, onRegisterRunTrigger,
+  onClose, result, loading, runTriggerTick, language, code, onStdinChange, initialStdin = ''
 }: TerminalPanelProps) {
+  const { colors, isDark } = useTheme();
+  const themeClasses = useThemeClasses();
   const containerRef = useRef<HTMLDivElement>(null);
-  const xtermRef     = useRef<Terminal | null>(null);
-  const fitAddonRef  = useRef<FitAddon | null>(null);
-  const wsRef        = useRef<WebSocket | null>(null);
-  const isMounted    = useRef(true);
-  const inputLineRef = useRef('');
-  const isInteractiveRef = useRef(false); // true while a process is running
+  const xtermRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const isMounted = useRef(true);
+  const [copied, setCopied] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [showStdin, setShowStdin] = useState(false);
+  const [localStdin, setLocalStdin] = useState(initialStdin);
+  const protocolRef = useRef<TerminalProtocol>('pty');
+  const queuedRunTick = useRef(0);
+  const ptyUnavailableRef = useRef(false);
 
-  const [serverStatus, setServerStatus] = useState<ServerStatus>('checking');
-  const [runStatus,    setRunStatus]    = useState<RunStatus>('idle');
+  const WS_URL = process.env.NEXT_PUBLIC_WS_SERVER_URL || 'ws://localhost:5001';
 
-  // ── Write helpers ───────────────────────────────────────────────────────────
-  const write  = useCallback((s: string) => xtermRef.current?.write(s),  []);
-  const writeln = useCallback((s: string) => xtermRef.current?.writeln(s), []);
-  const prompt = useCallback(() => {
-    if (!isInteractiveRef.current) write('\r\n\x1b[1;34m➜ \x1b[0m ');
-  }, [write]);
-
-  // ── Check if exec server is reachable ──────────────────────────────────────
-  const checkServer = useCallback(async (): Promise<boolean> => {
-    try {
-      const res = await fetch(EXEC_HTTP_URL, { signal: AbortSignal.timeout(1500) });
-      return res.ok;
-    } catch {
-      return false;
+  const connectToPty = useCallback((): void => {
+    if (ptyUnavailableRef.current) {
+      setShowStdin(true);
+      return;
     }
-  }, []);
 
-  // ── Connect WebSocket ───────────────────────────────────────────────────────
-  const connectWS = useCallback((): Promise<WebSocket | null> => {
-    return new Promise((resolve) => {
-      try {
-        const ws = new WebSocket(EXEC_WS_URL);
-        ws.onopen  = () => resolve(ws);
-        ws.onerror = () => resolve(null);
-        ws.onclose = () => {
-          if (isMounted.current) setServerStatus('offline');
-        };
-      } catch {
-        resolve(null);
+    if (wsRef.current) wsRef.current.close();
+
+    const ws = new WebSocket(WS_URL);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setIsConnected(true);
+      if (xtermRef.current) {
+        xtermRef.current.reset();
+        xtermRef.current.write('\x1b[2J\x1b[H'); // Clear and home
+        
+        if (code && language) {
+          protocolRef.current = WS_URL.includes(':5001') ? 'pty' : 'exec';
+          ws.send(JSON.stringify({
+            type: protocolRef.current === 'pty' ? 'start' : 'run',
+            language: language.toLowerCase(),
+            code,
+            stdin: localStdin,
+            cols: xtermRef.current.cols,
+            rows: xtermRef.current.rows
+          }));
+        }
       }
-    });
-  }, []);
+    };
 
-  // ── Initialise xterm ───────────────────────────────────────────────────────
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if ((msg.type === 'output' || msg.type === 'stdout') && xtermRef.current) {
+          xtermRef.current.write(msg.data);
+          xtermRef.current.scrollToBottom();
+        } else if (msg.type === 'stderr' && xtermRef.current) {
+          xtermRef.current.write(`\x1b[31m${msg.data}\x1b[0m`);
+          xtermRef.current.scrollToBottom();
+        } else if (msg.type === 'exit') {
+          setIsConnected(false);
+          if (xtermRef.current) {
+            xtermRef.current.writeln(`\r\n\x1b[33mProcess exited with code ${msg.exitCode ?? msg.code ?? 0}\x1b[0m`);
+          }
+        }
+      } catch (e) {
+        // Fallback for raw data if not JSON
+        if (xtermRef.current) xtermRef.current.write(event.data);
+      }
+    };
+
+    ws.onerror = () => {
+      ptyUnavailableRef.current = true;
+      setIsConnected(false);
+      setShowStdin(true);
+    };
+
+    ws.onclose = () => {
+      setIsConnected(false);
+    };
+  }, [WS_URL, code, language, localStdin]);
+
+  // Initialize xterm
   useEffect(() => {
     isMounted.current = true;
 
     const term = new Terminal({
-      cursorBlink:  true,
-      fontSize:     13,
-      fontFamily:   'JetBrains Mono, Cascadia Code, Menlo, monospace',
-      letterSpacing: 0,
-      lineHeight:   1.35,
-      theme: {
-        background:         '#0a0a0c',
-        foreground:         '#d1d5db',
-        cursor:             '#f97316',
-        cursorAccent:       '#0a0a0c',
-        selectionBackground:'rgba(249,115,22,0.25)',
-        black:              '#1e1e2e',
-        red:                '#f38ba8',
-        green:              '#a6e3a1',
-        yellow:             '#f9e2af',
-        blue:               '#89b4fa',
-        magenta:            '#cba6f7',
-        cyan:               '#89dceb',
-        white:              '#cdd6f4',
-        brightBlack:        '#585b70',
-        brightWhite:        '#ffffff',
-      },
-      convertEol:         true,
-      scrollback:         2000,
-      allowProposedApi:   true,
+      cursorBlink: true,
+      cursorStyle: 'block',
+      fontSize: 12,
+      fontFamily: 'JetBrains Mono, Menlo, monospace',
+      convertEol: true,
+      disableStdin: false,
+      allowTransparency: true,
+      theme: { 
+        background: 'transparent',
+        foreground: colors.textPrimary,
+        cursor: colors.accent,
+        selectionBackground: 'rgba(6, 182, 212, 0.3)',
+      }
     });
 
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
 
-    const mountTimer = setTimeout(async () => {
-      if (!isMounted.current || !containerRef.current) return;
-
+    setTimeout(() => {
+      if (!containerRef.current || !isMounted.current) return;
       try {
         term.open(containerRef.current);
-        xtermRef.current   = term;
+        xtermRef.current = term;
         fitAddonRef.current = fitAddon;
-
-        if (containerRef.current.offsetWidth > 0) fitAddon.fit();
-
-        // ── Startup banner ─────────────────────────────────────────────────
-        term.writeln('\x1b[1;33m ◆  CodeVisualizer Terminal\x1b[0m');
-        term.write('\x1b[2m Checking for interactive exec server...\x1b[0m');
-
-        const online = await checkServer();
-        if (!isMounted.current) return;
-
-        if (online) {
-          const ws = await connectWS();
-          if (ws && isMounted.current) {
-            wsRef.current = ws;
-            setServerStatus('connected');
-            term.write('\r\x1b[K'); // clear the "checking..." line
-            term.writeln(' \x1b[32m● Interactive mode active\x1b[0m  \x1b[2m(local exec server connected)\x1b[0m');
-            term.writeln(' \x1b[2mType  \x1b[32mrun\x1b[0m\x1b[2m  to execute your active file · \x1b[0m\x1b[2mInput typed here goes directly to your program.\x1b[0m\r\n');
-
-            // Register the run trigger so IDE.tsx Run button works
-            if (onRegisterRunTrigger) {
-              onRegisterRunTrigger(() => {
-                const codeToRun = activeCode || '';
-                const lang      = activeLanguage || 'python';
-                if (!codeToRun.trim()) {
-                  term.writeln('\x1b[31m✗ No code to run. Open a file in the editor.\x1b[0m');
-                  return;
-                }
-                if (ws.readyState === WebSocket.OPEN) {
-                  term.writeln(`\x1b[2m▶ Running ${lang}…\x1b[0m\r\n`);
-                  ws.send(JSON.stringify({ type: 'run', code: codeToRun, language: lang }));
-                }
-              });
-            }
-
-            // ── Handle messages from exec server ───────────────────────────
-            ws.onmessage = (event) => {
-              if (!isMounted.current) return;
-              let msg: any;
-              try { msg = JSON.parse(event.data); } catch { return; }
-
-              switch (msg.type) {
-                case 'status':
-                  if (msg.status === 'starting') {
-                    setRunStatus('compiling');
-                    isInteractiveRef.current = true;
-                  } else if (msg.status === 'running') {
-                    setRunStatus('running');
-                  }
-                  break;
-
-                case 'stdout':
-                  // stdout goes directly to terminal (shows prompts etc.)
-                  term.write(msg.data.replace(/\n/g, '\r\n'));
-                  break;
-
-                case 'stderr':
-                  term.write('\x1b[31m' + msg.data.replace(/\n/g, '\r\n') + '\x1b[0m');
-                  break;
-
-                case 'compile_error':
-                  setRunStatus('done');
-                  isInteractiveRef.current = false;
-                  term.write('\r\n\x1b[31m✗ Compilation failed:\x1b[0m\r\n');
-                  term.write('\x1b[31m' + (msg.message || '').replace(/\n/g, '\r\n') + '\x1b[0m');
-                  term.write('\r\n');
-                  prompt();
-                  break;
-
-                case 'error':
-                  setRunStatus('done');
-                  isInteractiveRef.current = false;
-                  term.write('\r\n\x1b[31m✗ Error: ' + (msg.message || 'unknown') + '\x1b[0m\r\n');
-                  prompt();
-                  break;
-
-                case 'exit':
-                  setRunStatus('done');
-                  isInteractiveRef.current = false;
-                  if (msg.code === 0) {
-                    term.write('\r\n\x1b[2m━━ Process exited (success) ━━\x1b[0m\r\n');
-                  } else {
-                    term.write(`\r\n\x1b[31m━━ Process exited (code ${msg.code ?? '?'}) ━━\x1b[0m\r\n`);
-                  }
-                  prompt();
-                  break;
-              }
-            };
+        
+        term.onData(data => {
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              type: protocolRef.current === 'pty' ? 'input' : 'stdin',
+              data
+            }));
           } else {
-            setServerStatus('offline');
-            showFallbackBanner(term);
-          }
-        } else {
-          setServerStatus('offline');
-          term.write('\r\x1b[K');
-          showFallbackBanner(term);
-        }
-
-        // ── Input handler ──────────────────────────────────────────────────
-        term.onData((data: string) => {
-          if (!isMounted.current) return;
-          const code = data.charCodeAt(0);
-
-          // ── Interactive mode: pipe all keystrokes directly to process ────
-          if (isInteractiveRef.current) {
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-              // Send keystroke to backend process stdin
-              wsRef.current.send(JSON.stringify({ type: 'stdin', data }));
-            }
-            // Echo the character (process sees it, user sees it)
-            if (code === 13) {
-              term.write('\r\n');
-            } else if (code === 127) {
-              term.write('\b \b');
-            } else {
-              term.write(data);
-            }
-            return;
-          }
-
-          // ── Command mode (no process running) ─────────────────────────
-          if (code === 13) { // Enter
-            term.write('\r\n');
-            const cmd = inputLineRef.current.trim();
-            inputLineRef.current = '';
-            handleCommand(cmd, term);
-          } else if (code === 127) { // Backspace
-            if (inputLineRef.current.length > 0) {
-              inputLineRef.current = inputLineRef.current.slice(0, -1);
-              term.write('\b \b');
-            }
-          } else if (code === 3) { // Ctrl+C
-            inputLineRef.current = '';
-            term.write('^C\r\n');
-            prompt();
-          } else {
-            inputLineRef.current += data;
-            term.write(data);
+            // Echo input in batch mode? No, batch mode is stdin-based.
           }
         });
 
-        prompt();
-      } catch (e) {
-        console.warn('[TerminalPanel] init error:', e);
+        setTimeout(() => { 
+          if (containerRef.current && containerRef.current.clientHeight > 0) {
+            try { fitAddon.fit(); } catch {} 
+          }
+        }, 100);
+      } catch {
+        return;
       }
+      term.writeln('\x1b[36m⚡ CodeVisualizer Terminal v4.0\x1b[0m');
+      term.writeln('\x1b[90mSYSTEM: PTY Environment Active • Ready for execution\x1b[0m');
+      setIsReady(true);
     }, 100);
 
-    // ResizeObserver
-    const resizeObserver = new ResizeObserver(() => {
-      if (!isMounted.current || !fitAddonRef.current) return;
-      requestAnimationFrame(() => {
-        try { fitAddonRef.current?.fit(); } catch {}
-      });
+    const resizeObs = new ResizeObserver(() => {
+      if (fitAddonRef.current && xtermRef.current && containerRef.current && containerRef.current.clientHeight > 0) {
+        try { 
+          fitAddonRef.current.fit(); 
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              type: 'resize',
+              cols: xtermRef.current.cols,
+              rows: xtermRef.current.rows
+            }));
+          }
+        } catch (e) {}
+      }
     });
-    if (containerRef.current) resizeObserver.observe(containerRef.current);
+    if (containerRef.current) resizeObs.observe(containerRef.current);
 
     return () => {
       isMounted.current = false;
-      clearTimeout(mountTimer);
-      resizeObserver.disconnect();
-      wsRef.current?.close();
-      try { xtermRef.current?.dispose(); } catch {}
-      xtermRef.current = null;
+      resizeObs.disconnect();
+      xtermRef.current?.dispose();
+      if (wsRef.current) wsRef.current.close();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [colors.accent, colors.textPrimary]);
 
-  // ── Fallback banner (offline mode) ─────────────────────────────────────────
-  function showFallbackBanner(term: Terminal) {
-    term.writeln(' \x1b[33m● Offline mode\x1b[0m  \x1b[2m(batch stdin only — exec server not running)\x1b[0m');
-    term.writeln(' \x1b[2mStart the interactive server: \x1b[32mnpm run exec-server\x1b[0m\r\n');
-  }
+  useEffect(() => {
+    setLocalStdin(initialStdin);
+  }, [initialStdin]);
 
-  // ── Command handler (offline / utility commands) ───────────────────────────
-  const handleCommand = useCallback(async (cmd: string, term: Terminal) => {
-    if (!cmd) { prompt(); return; }
+  // Handle run triggers
+  useEffect(() => {
+    if (!isReady) return;
+    if (runTriggerTick && runTriggerTick > 0 && runTriggerTick !== queuedRunTick.current) {
+      queuedRunTick.current = runTriggerTick;
+      connectToPty();
+    }
+  }, [runTriggerTick, isReady, connectToPty]);
 
-    if (cmd === 'clear' || cmd === 'cls') {
-      term.clear(); prompt(); return;
-    }
-    if (cmd === 'help') {
-      term.writeln('\x1b[1mAvailable commands:\x1b[0m');
-      term.writeln('  \x1b[32mrun\x1b[0m          Execute the active editor file');
-      term.writeln('  \x1b[32mkill\x1b[0m         Kill the running process');
-      term.writeln('  \x1b[32mls\x1b[0m           List files in workspace');
-      term.writeln('  \x1b[32mclear\x1b[0m        Clear terminal');
-      term.writeln('  \x1b[32mhelp\x1b[0m         Show this help');
-      prompt(); return;
-    }
-    if (cmd === 'kill') {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'kill' }));
-      }
-      prompt(); return;
-    }
-    if (cmd === 'run') {
-      if (serverStatus === 'connected' && wsRef.current?.readyState === WebSocket.OPEN) {
-        // Interactive run via WebSocket
-        const code = activeCode || '';
-        const lang = activeLanguage || 'python';
-        if (!code.trim()) {
-          term.writeln('\x1b[31m✗ No code to run. Open a file in the editor first.\x1b[0m');
-          prompt(); return;
-        }
-        term.writeln(`\x1b[2m▶ Running ${lang} (interactive mode)...\x1b[0m\r\n`);
-        wsRef.current.send(JSON.stringify({ type: 'run', code, language: lang }));
-        return; // Don't call prompt — process will call it on exit
-      } else {
-        // Batch fallback
-        term.writeln('\x1b[33m⚡ Running in batch mode (stdin from Stdin box)...\x1b[0m');
-        try {
-          const output = await onRunCommand('run');
-          term.writeln(output || '(no output)');
-        } catch (e: any) {
-          term.writeln('\x1b[31m✗ ' + e.message + '\x1b[0m');
-        }
-        prompt(); return;
+  // Batch fallback display
+  useEffect(() => {
+    if (!isReady || isConnected) return;
+    if (result && xtermRef.current && !loading) {
+      xtermRef.current.reset();
+      xtermRef.current.write('\x1b[2J\x1b[H'); // Clear and home
+      
+      // Compact high-density output
+      const lines = [];
+      const stdout = result.run?.stdout || '';
+      const stderr = result.run?.stderr || result.error || '';
+      if (stdout) lines.push(stdout.trim());
+      if (stderr) lines.push(`\x1b[31m${stderr.trim()}\x1b[0m`);
+      
+      xtermRef.current.write(lines.join('\r\n'));
+      xtermRef.current.write(`\r\n\x1b[32m[Batch Mode] Process exited: ${result.run?.code ?? (result.success ? 0 : 1)}\x1b[0m\r\n`);
+      
+      if (ptyUnavailableRef.current) {
+        xtermRef.current.write('\x1b[90mNote: Interactive PTY unavailable; used batch fallback.\x1b[0m');
       }
     }
-    if (cmd === 'ls') {
-      try {
-        const output = await onRunCommand('ls');
-        term.writeln(output);
-      } catch {}
-      prompt(); return;
+  }, [result, loading, isReady, isConnected]);
+
+  const copyTerminal = (): void => {
+    const buffer = xtermRef.current?.buffer.active;
+    if (!buffer) return;
+
+    let text = '';
+    for (let i = 0; i < buffer.length; i++) {
+      const line = buffer.getLine(i);
+      if (line) text += line.translateToString(true) + '\n';
     }
 
-    // Default: try batch fallback
-    try {
-      const output = await onRunCommand(cmd);
-      term.writeln(output);
-    } catch {
-      term.writeln(`\x1b[31mUnknown command: ${cmd}. Type "help" for available commands.\x1b[0m`);
-    }
-    prompt();
-  }, [serverStatus, activeCode, activeLanguage, onRunCommand, prompt]);
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-  // ── Kill button ─────────────────────────────────────────────────────────────
-  const handleKill = () => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'kill' }));
+  const clearTerminal = (): void => {
+    if (xtermRef.current) {
+      xtermRef.current.reset();
+      xtermRef.current.write('\x1b[2J\x1b[H');
+      xtermRef.current.writeln('\x1b[36mCodeVisualizer Terminal\x1b[0m');
     }
   };
 
+  const handleStdinChangeInternal = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setLocalStdin(val);
+    onStdinChange?.(val);
+  };
+
   return (
-    <div className="h-full flex flex-col bg-[#0a0a0c]">
-      {/* Header */}
-      <div className="px-4 py-1.5 border-b border-gray-800/50 flex items-center justify-between bg-black/20 shrink-0">
-        <div className="flex items-center gap-3">
-          <Command size={12} className="text-orange-500" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Terminal</span>
-
-          {/* Server status badge */}
-          <div className={cn(
-            'flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border',
-            serverStatus === 'connected' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
-            serverStatus === 'offline'   ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
-                                           'bg-gray-500/10 border-gray-500/20 text-gray-500',
-          )}>
-            {serverStatus === 'checking'  && <Loader2 size={8} className="animate-spin" />}
-            {serverStatus === 'connected' && <Wifi size={8} />}
-            {serverStatus === 'offline'   && <WifiOff size={8} />}
-            {serverStatus === 'checking'  ? 'Checking' : serverStatus === 'connected' ? 'Interactive' : 'Batch Mode'}
-          </div>
-
-          {/* Run status */}
-          {runStatus !== 'idle' && runStatus !== 'done' && (
-            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-wider text-orange-400">
-              <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-              {runStatus === 'compiling' ? 'Compiling…' : 'Running…'}
-            </div>
+    <div className={cn("h-full flex flex-col overflow-hidden relative group", isDark ? "bg-black/40" : "bg-white")}>
+      {/* Floating Action Controls - Minimalist approach */}
+      <div className="absolute top-2 right-4 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button 
+          onClick={copyTerminal}
+          className={cn(
+            "p-1.5 border rounded-lg transition-all backdrop-blur-md",
+            isDark ? "bg-[#141725]/80 border-white/5 text-gray-500 hover:text-white" : "bg-white/90 border-gray-200 text-gray-400 hover:text-gray-900"
           )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {(runStatus === 'compiling' || runStatus === 'running') && (
-            <button
-              onClick={handleKill}
-              title="Kill process"
-              className="flex items-center gap-1 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded-lg text-[9px] font-black text-red-400 hover:bg-red-500/20 transition-all"
-            >
-              <Square size={9} /> Kill
-            </button>
+          title="Copy output"
+        >
+          {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12}/>}
+        </button>
+        <button 
+          onClick={clearTerminal}
+          className={cn(
+            "p-1.5 border rounded-lg transition-all backdrop-blur-md",
+            isDark ? "bg-[#141725]/80 border-white/5 text-gray-500 hover:text-white" : "bg-white/90 border-gray-200 text-gray-400 hover:text-gray-900"
           )}
-          <button onClick={() => xtermRef.current?.clear()} className="text-gray-600 hover:text-white transition-colors p-1" title="Clear">
-            <Trash2 size={12} />
-          </button>
-          <button onClick={onClose} className="text-gray-600 hover:text-white transition-colors p-1" title="Close">
-            <X size={14} />
-          </button>
-        </div>
+          title="Clear"
+        >
+          <Trash2 size={12}/>
+        </button>
       </div>
 
-      {/* xterm.js container */}
-      <div ref={containerRef} className="flex-1 p-2 overflow-hidden min-h-0" />
+      {/* Stdin Fallback Panel - Unified UI */}
+      {showStdin && !isConnected && (
+        <div className={cn("border-b shrink-0 backdrop-blur-xl bg-[#0B0D17]/95", themeClasses.border)}>
+          <div className={cn("flex items-center justify-between px-4 py-2 border-b bg-white/5", themeClasses.borderSecondary)}>
+            <div className="flex items-center gap-3">
+              <Keyboard size={12} className="text-cyan-500" />
+              <span className={cn("text-[10px] font-black uppercase tracking-widest", themeClasses.textSecondary)}>Program Input (stdin)</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                <SparklesIcon size={10} className="text-cyan-500" />
+                <span className="text-[9px] font-bold text-cyan-400 uppercase">Input Buffer Active</span>
+              </div>
+              <button onClick={() => setShowStdin(false)} className={cn(themeClasses.textTertiary, "hover:text-white p-1")}>
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+          <textarea
+            value={localStdin}
+            onChange={handleStdinChangeInternal}
+            placeholder="Enter input to pre-supply to your program..."
+            className={cn(
+              "w-full h-24 px-4 py-3 text-[13px] font-mono bg-transparent resize-none focus:outline-none transition-all",
+              themeClasses.textSecondary, "placeholder:opacity-30"
+            )}
+          />
+        </div>
+      )}
+
+      {/* Terminal Viewport */}
+      <div className="flex-1 min-h-0 relative">
+        <div ref={containerRef} className="absolute inset-0 px-3 py-2" />
+        {!isReady && (
+          <div className={cn("absolute inset-0 flex flex-col items-center justify-center gap-4", themeClasses.bg)}>
+            <div className="relative w-12 h-12">
+              <div className={cn("absolute inset-0 rounded-full border-2 border-t-transparent animate-spin", themeClasses.accentBorder)} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Command size={16} className={themeClasses.accent} />
+              </div>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-cyan-500/40">Initializing Terminal...</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

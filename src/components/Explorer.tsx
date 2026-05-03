@@ -2,8 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   FolderOpen, File, ChevronRight, ChevronDown, Plus, Trash2, 
-  FileText, Search, BookOpen, Filter, FolderPlus, FilePlus,
-  MoreVertical, Edit2, Download
+  FileText, Search, BookOpen, FolderPlus, FilePlus, Edit2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FileNode } from '@/types';
@@ -17,7 +16,7 @@ const LANG_ICONS: Record<string, { color: string; label: string }> = {
   cpp: { color: 'text-blue-500', label: 'C++' },
   c: { color: 'text-gray-400', label: 'C' },
   java: { color: 'text-red-400', label: 'JA' },
-  rust: { color: 'text-orange-400', label: 'RS' },
+  rust: { color: 'text-cyan-400', label: 'RS' },
   go: { color: 'text-cyan-400', label: 'GO' },
 };
 
@@ -90,7 +89,7 @@ export default function Explorer({ files, activeFileId, onFileClick, onCreateFil
           onClick={() => setView('files')}
           className={cn(
             "flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2",
-            view === 'files' ? "border-orange-500 text-orange-500 bg-orange-500/5" : "border-transparent text-gray-500 hover:text-gray-300"
+            view === 'files' ? "border-cyan-500 text-cyan-500 bg-cyan-500/5" : "border-transparent text-gray-500 hover:text-gray-300"
           )}
         >
           Files
@@ -99,7 +98,7 @@ export default function Explorer({ files, activeFileId, onFileClick, onCreateFil
           onClick={() => setView('problems')}
           className={cn(
             "flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2",
-            view === 'problems' ? "border-orange-500 text-orange-500 bg-orange-500/5" : "border-transparent text-gray-500 hover:text-gray-300"
+            view === 'problems' ? "border-cyan-500 text-cyan-500 bg-cyan-500/5" : "border-transparent text-gray-500 hover:text-gray-300"
           )}
         >
           Problems
@@ -113,14 +112,14 @@ export default function Explorer({ files, activeFileId, onFileClick, onCreateFil
             <div className="flex items-center gap-1">
               <button 
                 onClick={() => setNewFileType('file')} 
-                className="p-1 hover:text-orange-400 text-gray-600 transition-colors"
+                className="p-1 hover:text-cyan-400 text-gray-600 transition-colors"
                 title="New File"
               >
                 <FilePlus size={14}/>
               </button>
               <button 
                 onClick={() => setNewFileType('folder')} 
-                className="p-1 hover:text-orange-400 text-gray-600 transition-colors"
+                className="p-1 hover:text-cyan-400 text-gray-600 transition-colors"
                 title="New Folder"
               >
                 <FolderPlus size={14}/>
@@ -134,7 +133,7 @@ export default function Explorer({ files, activeFileId, onFileClick, onCreateFil
               value={search}
               onChange={e => { setSearch(e.target.value); setVisibleProblemsCount(50); }}
               placeholder="Search 8000+ problems..."
-              className="w-full bg-gray-900/50 border border-gray-800 rounded-lg py-1.5 pl-8 pr-3 text-[10px] text-gray-300 focus:outline-none focus:border-orange-500/50 placeholder:text-gray-700 font-medium"
+              className="w-full bg-gray-900/50 border border-gray-800 rounded-lg py-1.5 pl-8 pr-3 text-[10px] text-gray-300 focus:outline-none focus:border-cyan-500/50 placeholder:text-gray-700 font-medium"
             />
           </div>
         )}
@@ -142,8 +141,8 @@ export default function Explorer({ files, activeFileId, onFileClick, onCreateFil
 
       {view === 'files' && newFileType && (
         <div className="px-3 pb-3 animate-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center gap-2 bg-[#111118] border border-orange-500/30 rounded-lg px-3 py-2 shadow-xl shadow-orange-500/5">
-            {newFileType === 'file' ? <File size={12} className="text-orange-500"/> : <FolderOpen size={12} className="text-orange-500"/>}
+          <div className="flex items-center gap-2 bg-[#111118] border border-cyan-500/30 rounded-lg px-3 py-2 shadow-xl shadow-cyan-500/5">
+            {newFileType === 'file' ? <File size={12} className="text-cyan-500"/> : <FolderOpen size={12} className="text-cyan-500"/>}
             <input
               autoFocus
               value={newFileName}
@@ -189,11 +188,11 @@ export default function Explorer({ files, activeFileId, onFileClick, onCreateFil
                 className="w-full text-left p-2.5 rounded-xl hover:bg-gray-800/30 group transition-all border border-transparent hover:border-gray-800/50"
               >
                 <div className="flex items-center justify-between mb-1 gap-2">
-                  <span className="text-[10px] font-bold text-gray-300 group-hover:text-orange-400 transition-colors truncate">{p.title}</span>
+                  <span className="text-[10px] font-bold text-gray-300 group-hover:text-cyan-400 transition-colors truncate">{p.title}</span>
                   <span className={cn(
                     "text-[8px] font-black uppercase px-1 rounded border shrink-0",
                     p.difficulty === 'Easy' ? "border-green-500/30 text-green-500" : 
-                    p.difficulty === 'Medium' ? "border-orange-500/30 text-orange-500" : "border-red-500/30 text-red-500"
+                    p.difficulty === 'Medium' ? "border-cyan-500/30 text-cyan-500" : "border-red-500/30 text-red-500"
                   )}>
                     {p.difficulty[0]}
                   </span>
@@ -210,7 +209,7 @@ export default function Explorer({ files, activeFileId, onFileClick, onCreateFil
             ))}
             {visibleProblemsCount < filteredProblems.length && (
               <div className="py-4 text-center">
-                <div className="w-4 h-4 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto" />
+                <div className="w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mx-auto" />
               </div>
             )}
           </div>
@@ -275,11 +274,11 @@ function TreeNode({ node, depth, activeFileId, onFileClick, onDelete, onCreateCh
             style={{ paddingLeft: `${depth * 12}px` }}
           >
             {expanded ? <ChevronDown size={12} className="shrink-0" /> : <ChevronRight size={12} className="shrink-0" />}
-            <FolderOpen size={13} className={cn("shrink-0", expanded ? "text-orange-500" : "text-gray-600")} />
+            <FolderOpen size={13} className={cn("shrink-0", expanded ? "text-cyan-500" : "text-gray-600")} />
             <span className="truncate font-black tracking-tight">{node.name}</span>
           </button>
           <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1">
-            <button onClick={() => onCreateChild(node.id, 'new-file', 'file')} className="p-1 hover:text-orange-500 text-gray-600"><Plus size={13}/></button>
+            <button onClick={() => onCreateChild(node.id, 'new-file', 'file')} className="p-1 hover:text-cyan-500 text-gray-600"><Plus size={13}/></button>
             <button onClick={() => onDelete(node.id)} className="p-1 hover:text-red-500 text-gray-600"><Trash2 size={13}/></button>
           </div>
         </div>
@@ -306,7 +305,7 @@ function TreeNode({ node, depth, activeFileId, onFileClick, onDelete, onCreateCh
       className={cn(
         "w-full flex items-center gap-1.5 px-2 py-1.5 text-xs rounded-xl transition-all group border-l-2",
         isActive 
-          ? "bg-orange-500/10 border-orange-500 text-orange-400 font-bold" 
+          ? "bg-cyan-500/10 border-cyan-500 text-cyan-400 font-bold" 
           : "border-transparent text-gray-500 hover:text-gray-300 hover:bg-gray-800/20"
       )}
       style={{ paddingLeft: `${depth * 12 + 16}px` }}

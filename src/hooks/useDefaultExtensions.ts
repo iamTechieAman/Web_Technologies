@@ -1,7 +1,6 @@
 'use client';
 import { useEffect } from 'react';
 import { extensions } from '@/lib/extensions';
-import { Play, Sparkles, BookOpen } from 'lucide-react';
 
 export function useDefaultExtensions() {
   useEffect(() => {

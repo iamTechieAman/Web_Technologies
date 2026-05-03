@@ -41,7 +41,7 @@ export default function SolutionPanel({ problem, language = 'python' }: Solution
     <div className="h-full flex flex-col space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-orange-500" />
+          <Sparkles size={14} className="text-cyan-500" />
           <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Optimal Solution</h3>
         </div>
         <div className="flex items-center gap-2 px-2 py-1 bg-gray-900 rounded text-[9px] font-black text-gray-600 uppercase tracking-tighter">
@@ -50,8 +50,8 @@ export default function SolutionPanel({ problem, language = 'python' }: Solution
       </div>
 
       {!revealed ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-gray-800/50 rounded-3xl bg-[#0d0d10]/50 space-y-6 transition-all group hover:border-orange-500/30">
-          <div className="w-20 h-20 rounded-3xl bg-orange-500/10 flex items-center justify-center text-orange-500 transform transition-transform group-hover:scale-110 duration-500 shadow-2xl shadow-orange-500/5">
+        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-gray-800/50 rounded-3xl bg-[#0d0d10]/50 space-y-6 transition-all group hover:border-cyan-500/30">
+          <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 transform transition-transform group-hover:scale-110 duration-500 shadow-2xl shadow-cyan-500/5">
             <AlertTriangle size={40} strokeWidth={1.5} />
           </div>
           <div className="space-y-3">
@@ -60,7 +60,7 @@ export default function SolutionPanel({ problem, language = 'python' }: Solution
           </div>
           <Button 
             onClick={() => setRevealed(true)} 
-            className="h-12 px-10 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-orange-500/20 active:scale-95 transition-all"
+            className="h-12 px-10 bg-cyan-500 hover:bg-cyan-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-cyan-500/20 active:scale-95 transition-all"
           >
             <Eye size={16} className="mr-2" /> Show Me The Path
           </Button>
@@ -81,7 +81,7 @@ export default function SolutionPanel({ problem, language = 'python' }: Solution
               <ul className="space-y-3">
                 {problem.approachSteps.map((step, i) => (
                   <li key={i} className="flex gap-4 p-4 bg-gray-900/40 border border-gray-800 rounded-2xl">
-                    <span className="text-[10px] font-black text-orange-500 opacity-50 mt-0.5">{i + 1}.</span>
+                    <span className="text-[10px] font-black text-cyan-500 opacity-50 mt-0.5">{i + 1}.</span>
                     <p className="text-xs text-gray-400 leading-relaxed font-medium">{step}</p>
                   </li>
                 ))}
@@ -96,7 +96,7 @@ export default function SolutionPanel({ problem, language = 'python' }: Solution
                 onClick={handleCopy}
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                  copied ? "text-green-500 bg-green-500/10" : "text-gray-500 hover:text-orange-500 bg-gray-900"
+                  copied ? "text-green-500 bg-green-500/10" : "text-gray-500 hover:text-cyan-500 bg-gray-900"
                 )}
               >
                 {copied ? <CheckCircle2 size={12} /> : <Copy size={12} />}
@@ -104,7 +104,7 @@ export default function SolutionPanel({ problem, language = 'python' }: Solution
               </button>
             </div>
             <div className="relative group">
-              <pre className="p-6 bg-[#050507] rounded-2xl border border-gray-800 font-mono text-[11px] text-orange-400/90 leading-relaxed overflow-x-auto shadow-2xl">
+              <pre className="p-6 bg-[#050507] rounded-2xl border border-gray-800 font-mono text-[11px] text-cyan-400/90 leading-relaxed overflow-x-auto shadow-2xl">
                 <code>{solutionCode}</code>
               </pre>
               <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -114,11 +114,11 @@ export default function SolutionPanel({ problem, language = 'python' }: Solution
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-[#111118] border border-gray-800 rounded-2xl space-y-1 group hover:border-orange-500/20 transition-colors">
+            <div className="p-4 bg-[#111118] border border-gray-800 rounded-2xl space-y-1 group hover:border-cyan-500/20 transition-colors">
               <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Time Complexity</span>
               <p className="text-sm font-black text-gray-200 tracking-tight">{problem.timeComplexity || 'O(N)'}</p>
             </div>
-            <div className="p-4 bg-[#111118] border border-gray-800 rounded-2xl space-y-1 group hover:border-orange-500/20 transition-colors">
+            <div className="p-4 bg-[#111118] border border-gray-800 rounded-2xl space-y-1 group hover:border-cyan-500/20 transition-colors">
               <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Space Complexity</span>
               <p className="text-sm font-black text-gray-200 tracking-tight">{problem.spaceComplexity || 'O(1)'}</p>
             </div>

@@ -1,4 +1,5 @@
 /** AI integration via OpenRouter API */
+import { safeAsync, safeString } from './safe';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -43,11 +44,11 @@ export async function callAI(
       return { content: '', error: `AI API error (${res.status}): ${errText}` };
     }
 
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || '';
+    const data = await safeAsync<Record<string, any> | null>(() => res.json(), null);
+    const content = safeString(data?.choices?.[0]?.message?.content, '');
     return { content };
   } catch (err: any) {
-    return { content: '', error: `AI request failed: ${err.message}` };
+    return { content: '', error: `AI request failed: ${safeString(err?.message, 'Unknown error')}` };
   }
 }
 

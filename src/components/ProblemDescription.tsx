@@ -6,33 +6,36 @@ import { Badge } from '@/components/ui/badge';
 import { Problem } from '@/types';
 import { cn } from '@/lib/utils';
 import { 
-  AlertCircle, CheckCircle2, Clock, 
+  AlertCircle, Clock, 
   BarChart3, Tags, Lightbulb 
 } from 'lucide-react';
+import { useTheme, useThemeClasses } from '@/context/ThemeContext';
 
 interface ProblemDescriptionProps {
   problem: Problem;
 }
 
-export default function ProblemDescription({ problem }: ProblemDescriptionProps) {
+export default function ProblemDescription({ problem }: ProblemDescriptionProps): React.ReactNode {
+  const { isDark } = useTheme();
+  const themeClasses = useThemeClasses();
   const sanitizedDescription = DOMPurify.sanitize(problem.descriptionHtml || problem.description || '');
 
   return (
-    <div className="flex flex-col gap-8 pb-20">
+    <div className="flex flex-col gap-5 pb-20">
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
-          <span className="text-2xl font-black text-white tracking-tight">
+          <span className={cn("text-2xl font-black tracking-tight", themeClasses.text)}>
             {problem.id}. {problem.title}
           </span>
-          <Badge variant={problem.difficulty.toLowerCase() as any}>
+          <Badge variant={problem.difficulty.toLowerCase() as 'default' | 'destructive' | 'outline' | 'secondary'}>
             {problem.difficulty}
           </Badge>
         </div>
         
-        <div className="flex flex-wrap items-center gap-4 text-[10px] font-black uppercase tracking-widest text-gray-500">
+        <div className={cn("flex flex-wrap items-center gap-4 text-[10px] font-black uppercase tracking-widest", themeClasses.textTertiary)}>
           <div className="flex items-center gap-1.5">
-            <Tags size={12} className="text-orange-500" />
+            <Tags size={12} className={themeClasses.accent} />
             {(problem.tags || problem.topicTags?.map(t => t.name) || []).join(', ')}
           </div>
           <div className="flex items-center gap-1.5">
@@ -47,15 +50,15 @@ export default function ProblemDescription({ problem }: ProblemDescriptionProps)
       </div>
 
       {/* Description Content */}
-      <div className="prose prose-invert prose-sm max-w-none">
-        <div className="markdown-container text-gray-300 leading-relaxed space-y-4">
+      <div className={cn("prose prose-sm max-w-none", isDark ? "prose-invert" : "")}>
+        <div className={cn("markdown-container leading-relaxed space-y-4", themeClasses.textSecondary)}>
           <ReactMarkdown>
             {problem.description || ''}
           </ReactMarkdown>
         </div>
         {problem.descriptionHtml && (
           <div 
-            className="problem-content text-gray-300 leading-relaxed space-y-4 mt-4"
+            className={cn("problem-content leading-relaxed space-y-4 mt-4", themeClasses.textSecondary)}
             dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
           />
         )}
@@ -65,37 +68,37 @@ export default function ProblemDescription({ problem }: ProblemDescriptionProps)
       {(problem.constraints || problem.hints) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           {problem.constraints && problem.constraints.length > 0 && (
-            <div className="bg-white/5 border border-gray-800 rounded-2xl p-6">
+            <div className={cn("border rounded-2xl p-6", themeClasses.bgHover, themeClasses.border)}>
               <div className="flex items-center gap-2 mb-4">
-                <AlertCircle size={16} className="text-orange-500" />
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Constraints</h3>
+                <AlertCircle size={16} className={themeClasses.accent} />
+                <h3 className={cn("text-[10px] font-black uppercase tracking-widest", themeClasses.textTertiary)}>Constraints</h3>
               </div>
               <ul className="space-y-2">
                 {Array.isArray(problem.constraints) ? problem.constraints.map((c, i) => (
-                  <li key={i} className="text-xs text-gray-500 font-mono flex gap-2">
-                    <span className="text-orange-500/50">•</span> {c}
+                  <li key={i} className={cn("text-xs font-mono flex gap-2", themeClasses.textTertiary)}>
+                    <span className={cn(themeClasses.accent, "opacity-50")}>•</span> {c}
                   </li>
                 )) : (
-                  <li className="text-xs text-gray-500 font-mono">{problem.constraints}</li>
+                  <li className={cn("text-xs font-mono", themeClasses.textTertiary)}>{problem.constraints}</li>
                 )}
               </ul>
             </div>
           )}
 
           {problem.hints && problem.hints.length > 0 && (
-            <div className="bg-white/5 border border-gray-800 rounded-2xl p-6">
+            <div className={cn("border rounded-2xl p-6", themeClasses.bgHover, themeClasses.border)}>
               <div className="flex items-center gap-2 mb-4">
                 <Lightbulb size={16} className="text-blue-500" />
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Hints</h3>
+                <h3 className={cn("text-[10px] font-black uppercase tracking-widest", themeClasses.textTertiary)}>Hints</h3>
               </div>
               <div className="space-y-4">
                 {problem.hints.map((hint, i) => (
-                  <details key={i} className="group border-b border-gray-800/50 pb-2 cursor-pointer">
-                    <summary className="text-xs text-gray-500 hover:text-white transition-colors list-none flex items-center justify-between">
+                  <details key={i} className={cn("group border-b pb-2 cursor-pointer", themeClasses.border)}>
+                    <summary className={cn("text-xs transition-colors list-none flex items-center justify-between", themeClasses.textTertiary, "hover:text-cyan-500")}>
                       Hint {i + 1}
-                      <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
+                      <ChevronDownIcon size={12} className="group-open:rotate-180 transition-transform" />
                     </summary>
-                    <p className="text-xs text-gray-400 mt-2 pl-2 border-l border-blue-500/30 leading-relaxed">{hint}</p>
+                    <p className={cn("text-xs mt-2 pl-2 border-l leading-relaxed", themeClasses.textSecondary, "border-cyan-500/30")}>{hint}</p>
                   </details>
                 ))}
               </div>
@@ -105,34 +108,21 @@ export default function ProblemDescription({ problem }: ProblemDescriptionProps)
       )}
 
       <style jsx global>{`
-        .markdown-container pre {
-          background: #0d0d10 !important;
-          border: 1px solid #1f2937 !important;
+        .markdown-container pre, .problem-content pre {
+          background: ${isDark ? '#0d0d10' : '#f8f9fa'} !important;
+          border: 1px solid ${isDark ? '#1f2937' : '#e9ecef'} !important;
           padding: 1rem !important;
           border-radius: 0.75rem !important;
           overflow-x: auto;
         }
-        .markdown-container code {
-          color: #f97316 !important;
-          background: rgba(249, 115, 22, 0.1) !important;
-          padding: 0.1rem 0.3rem !important;
-          border-radius: 0.25rem !important;
-        }
-        .problem-content pre {
-          background: #0d0d10 !important;
-          border: 1px solid #1f2937 !important;
-          padding: 1rem !important;
-          border-radius: 0.75rem !important;
-          font-family: 'JetBrains Mono', monospace !important;
-        }
-        .problem-content code {
-          color: #f97316 !important;
-          background: rgba(249, 115, 22, 0.1) !important;
+        .markdown-container code, .problem-content code {
+          color: ${isDark ? '#f97316' : '#ea580c'} !important;
+          background: ${isDark ? 'rgba(249, 115, 22, 0.1)' : 'rgba(234, 88, 12, 0.05)'} !important;
           padding: 0.1rem 0.3rem !important;
           border-radius: 0.25rem !important;
         }
         .problem-content strong {
-          color: #fff !important;
+          color: ${isDark ? '#fff' : '#000'} !important;
           font-weight: 900 !important;
         }
       `}</style>
@@ -140,7 +130,7 @@ export default function ProblemDescription({ problem }: ProblemDescriptionProps)
   );
 }
 
-function ChevronDown({ size, className }: { size: number, className?: string }) {
+function ChevronDownIcon({ size, className }: { size: number, className?: string }): React.ReactNode {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="m6 9 6 6 6-6" />

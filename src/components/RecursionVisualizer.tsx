@@ -1,14 +1,8 @@
 'use client';
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, ChevronDown } from 'lucide-react';
+import { Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface CallFrame {
-  functionName: string;
-  args: Record<string, any>;
-  level: number;
-}
 
 interface RecursionVisualizerProps {
   steps: any[];
@@ -16,9 +10,6 @@ interface RecursionVisualizerProps {
 }
 
 export default function RecursionVisualizer({ steps, currentStep }: RecursionVisualizerProps) {
-  // Extract call stack from steps up to currentStep
-  const stack: CallFrame[] = [];
-  
   // Heuristic for recursion: look for 'call' events or changes in scope
   // For now, we'll use a simplified version that looks at consecutive steps
   // In a real implementation, the tracer should provide explicit call/return events

@@ -3,8 +3,17 @@ import { useState, useCallback } from 'react';
 import { generateExecutionSteps } from '@/lib/stepExecutor';
 import { preprocessCode } from '@/lib/preprocessor';
 import type { SupportedLanguage, ExecutionResult, ExecutionStep } from '@/types';
+import { safeAsync, safeString } from '@/lib/safe';
 
-export function useExecution() {
+export function useExecution(): {
+  run: (code: string, language: SupportedLanguage, stdin?: string) => Promise<ExecutionResult>;
+  result: ExecutionResult | null;
+  setResult: React.Dispatch<React.SetStateAction<ExecutionResult | null>>;
+  steps: ExecutionStep[];
+  loading: boolean;
+  error: string | null;
+  reset: () => void;
+} {
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [steps, setSteps] = useState<ExecutionStep[]>([]);
   const [loading, setLoading] = useState(false);
@@ -23,8 +32,8 @@ export function useExecution() {
       // Normalise stdin — never undefined, trimEnd to remove trailing newlines
       const normalisedStdin = typeof stdin === 'string' ? stdin.trimEnd() : '';
 
-      console.log('[hook/useExecution] ▶ language:', language);
-      console.log('[hook/useExecution] ▶ stdin being sent:', JSON.stringify(normalisedStdin));
+      // Yield to the browser so the UI can update the loading state before synchronous heavy work
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       // 1. Generate visual steps synchronously from preprocessed code
       const effectiveCode = preprocessCode(code, language);
@@ -33,9 +42,8 @@ export function useExecution() {
 
       try {
         const payload = { language, code, stdin: normalisedStdin };
-        console.log('[hook/useExecution] ▶ fetch payload.stdin:', JSON.stringify(payload.stdin));
 
-        const res = await fetch('/api/execute', {
+        const res = await fetch(`${window.location.origin}/api/execute`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -45,20 +53,26 @@ export function useExecution() {
           throw new Error(`Execution service returned ${res.status}: ${res.statusText}`);
         }
 
-        const data: ExecutionResult = await res.json();
-        setResult(data);
+        const data = await safeAsync<ExecutionResult | null>(() => res.json(), null);
+        const safeData: ExecutionResult = data ?? {
+          success: false,
+          error: 'Invalid execution response',
+          engine: 'piston',
+        };
+        setResult(safeData);
 
-        if (!data.success) {
-          setError(data.error || 'Execution failed');
+        if (!safeData.success) {
+          setError(safeData.error || 'Execution failed');
         }
 
         setLoading(false);
-        return data;
-      } catch (err: any) {
+        return safeData;
+      } catch (err: unknown) {
+        // eslint-disable-next-line no-console
         console.error('[hook/useExecution] ✗ Fetch error:', err);
         const fallback: ExecutionResult = {
           success: false,
-          error: err.message || 'Network error during execution',
+          error: safeString(err instanceof Error ? err.message : String(err), 'Network error during execution'),
           engine: 'piston',
         };
         setResult(fallback);
@@ -70,7 +84,7 @@ export function useExecution() {
     [],
   );
 
-  const reset = useCallback(() => {
+  const reset = useCallback((): void => {
     setResult(null);
     setSteps([]);
     setError(null);

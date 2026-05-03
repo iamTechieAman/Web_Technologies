@@ -1,16 +1,20 @@
 'use client';
 import React, { useState } from 'react';
 import { 
-  ChevronRight, ChevronDown, FileCode, Folder, FolderPlus, 
-  FilePlus, MoreVertical, Edit2, Trash2, Github, RefreshCw
+  ChevronRight, ChevronDown, Folder, FolderPlus, 
+  FilePlus, MoreVertical, Edit2, Trash2, Github, RefreshCw,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FileNode } from '@/types';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger, DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import * as ContextMenu from '@radix-ui/react-context-menu';
 import GitImportModal from './GitImportModal';
+import { getFileIcon } from '@/lib/fileIcons';
+import { useThemeClasses } from '@/context/ThemeContext';
 
 interface FileExplorerProps {
   files: FileNode[];
@@ -18,140 +22,169 @@ interface FileExplorerProps {
   onFileClick: (id: string) => void;
   onCreate: (parentId: string, type: 'file' | 'folder') => void;
   onDelete: (id: string, name: string) => void;
-  onRename: (id: string, newName: string) => void;
+  onRename: (id: string, currentName: string) => void;
   onImportProject: (repoUrl: string) => Promise<void>;
   onResetWorkspace: () => void;
+  onDownloadProject?: () => void;
 }
 
 export default function FileExplorer({ 
-  files, activeFileId, onFileClick, onCreate, onDelete, onRename, onImportProject, onResetWorkspace 
+  files, activeFileId, onFileClick, onCreate, onDelete, onRename, 
+  onImportProject, onResetWorkspace, onDownloadProject 
 }: FileExplorerProps) {
+  const themeClasses = useThemeClasses();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ root: true });
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
   const [isGitModalOpen, setIsGitModalOpen] = useState(false);
 
-  const toggleExpand = (id: string) => {
+  const toggleExpand = (id: string): void => {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const startRename = (node: FileNode) => {
-    setEditingId(node.id);
-    setEditValue(node.name);
-  };
-
-  const handleRename = (id: string) => {
-    if (editValue.trim()) {
-      onRename(id, editValue.trim());
-    }
-    setEditingId(null);
-  };
-
-  const renderTree = (nodes: FileNode[], level = 0) => {
+  const renderTree = (nodes: FileNode[], level = 0): React.ReactNode => {
     return nodes.sort((a, b) => {
       if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
       return a.name.localeCompare(b.name);
     }).map(node => {
       const isExpanded = expanded[node.id];
       const isActive = activeFileId === node.id;
+      const isFolder = node.type === 'folder';
 
       return (
-        <div key={node.id} className="select-none">
-          <div 
-            className={cn(
-              "group flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:bg-gray-800/50 transition-colors",
-              isActive && "bg-orange-500/10 text-orange-400 border-l-2 border-orange-500",
-              !isActive && "text-gray-400"
-            )}
-            style={{ paddingLeft: `${(level + 1) * 12}px` }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              // Trigger the dropdown menu via some state if we wanted to be fancy, 
-              // but for now, we'll ensure the existing menu is accessible.
-            }}
-            onClick={() => node.type === 'folder' ? toggleExpand(node.id) : onFileClick(node.id)}
-          >
-            {node.type === 'folder' ? (
-              isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />
-            ) : (
-              <div className="w-3.5" />
-            )}
-            
-            {node.type === 'folder' ? (
-              <Folder size={14} className="text-orange-500/80" />
-            ) : (
-              <FileCode size={14} className="text-blue-400/80" />
-            )}
+        <ContextMenu.Root key={node.id}>
+          <ContextMenu.Trigger>
+            <div className="select-none">
+              <div 
+                className={cn(
+                  "group flex items-center gap-2 py-1.5 px-3 cursor-pointer transition-all min-w-0 overflow-hidden relative border-y border-transparent",
+                  isActive 
+                    ? cn(themeClasses.bgSurface, themeClasses.text, "border-cyan-500/20 shadow-[0_0_15px_-5px_rgba(6,182,212,0.3)]") 
+                    : cn(themeClasses.textTertiary, "hover:bg-white/5 hover:text-white")
+                )}
+                style={{ paddingLeft: `${(level + 1) * 12}px` }}
+                onClick={() => isFolder ? toggleExpand(node.id) : onFileClick(node.id)}
+              >
+                {isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent pointer-events-none" />
+                )}
+                
+                {isFolder ? (
+                  <div className={cn("transition-transform duration-200", isExpanded && "rotate-90")}>
+                    <ChevronRight size={14} className={cn("shrink-0", isActive ? "text-cyan-500" : "text-white/20")} />
+                  </div>
+                ) : (
+                  <div className="w-3.5 shrink-0" />
+                )}
+                
+                {isFolder ? (
+                  <Folder size={15} className={cn("shrink-0 transition-colors", isActive || isExpanded ? "text-cyan-500" : "text-cyan-500/40")} strokeWidth={isExpanded ? 2.5 : 2} />
+                ) : (
+                  <div className="shrink-0 group-hover:scale-110 transition-transform">
+                    {getFileIcon(node.name)}
+                  </div>
+                )}
 
-            {editingId === node.id ? (
-              <input
-                autoFocus
-                className="bg-gray-900 border border-orange-500/50 text-[11px] px-1 focus:outline-none w-full h-5 rounded"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onBlur={() => handleRename(node.id)}
-                onKeyDown={(e) => e.key === 'Enter' && handleRename(node.id)}
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <span className="text-[11px] font-medium flex-1 truncate">{node.name}</span>
-            )}
+                <span className={cn("text-[11px] font-bold flex-1 truncate transition-colors", isActive ? "text-white" : "text-white/60 group-hover:text-white/90")}>{node.name}</span>
 
-            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
-              {node.type === 'folder' && (
-                <button 
-                  className="p-0.5 hover:bg-gray-700 rounded"
-                  onClick={(e) => { e.stopPropagation(); onCreate(node.id, 'file'); }}
-                >
-                  <FilePlus size={12} />
-                </button>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-0.5 hover:bg-gray-700 rounded" onClick={(e) => e.stopPropagation()}>
-                    <MoreVertical size={12} />
+                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 pr-1">
+                  <button 
+                    className="p-1 rounded-md transition-all hover:bg-cyan-500/20 text-white/30 hover:text-cyan-400"
+                    onClick={(e) => { e.stopPropagation(); onRename(node.id, node.name); }}
+                    title="Rename"
+                  >
+                    <Edit2 size={10} strokeWidth={2.5} />
                   </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="bg-gray-900 border-gray-800 text-gray-400">
-                  <DropdownMenuItem onClick={() => startRename(node)} className="text-[11px] gap-2 focus:bg-gray-800 focus:text-white">
-                    <Edit2 size={12} /> Rename
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onDelete(node.id, node.name)} className="text-[11px] gap-2 text-red-400 focus:bg-red-500/10 focus:text-red-400">
-                    <Trash2 size={12} /> Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  <button 
+                    className="p-1 rounded-md transition-all hover:bg-red-500/20 text-white/30 hover:text-red-400"
+                    onClick={(e) => { e.stopPropagation(); onDelete(node.id, node.name); }}
+                    title="Delete"
+                  >
+                    <Trash2 size={10} strokeWidth={2.5} />
+                  </button>
+                  {isFolder && (
+                    <>
+                      <button 
+                        className="p-1 rounded-md transition-all hover:bg-green-500/20 text-white/30 hover:text-green-400"
+                        onClick={(e) => { e.stopPropagation(); onCreate(node.id, 'file'); }}
+                        title="New File"
+                      >
+                        <FilePlus size={10} strokeWidth={2.5} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              {isFolder && isExpanded && node.children && (
+                <div>{renderTree(node.children, level + 1)}</div>
+              )}
             </div>
-          </div>
-          
-          {node.type === 'folder' && isExpanded && node.children && (
-            <div>{renderTree(node.children, level + 1)}</div>
-          )}
-        </div>
+          </ContextMenu.Trigger>
+
+          <ContextMenu.Portal>
+            <ContextMenu.Content className={cn("min-w-[160px] glass-panel z-[100] p-1 shadow-2xl rounded-lg", themeClasses.bgSecondary, themeClasses.border)}>
+              <ContextMenu.Item 
+                className={cn("flex items-center gap-2 px-2 py-1.5 text-[11px] outline-none cursor-pointer rounded", themeClasses.textTertiary, "focus:bg-cyan-500/20 focus:text-white")}
+                onClick={() => onRename(node.id, node.name)}
+              >
+                <Edit2 size={12} /> Rename
+              </ContextMenu.Item>
+              <ContextMenu.Item 
+                className={cn("flex items-center gap-2 px-2 py-1.5 text-[11px] outline-none cursor-pointer rounded", "text-red-400 focus:bg-red-500/20 focus:text-red-300")}
+                onClick={() => onDelete(node.id, node.name)}
+              >
+                <Trash2 size={12} /> Delete
+              </ContextMenu.Item>
+              <ContextMenu.Separator className={cn("h-px my-1", themeClasses.border)} />
+              {isFolder && (
+                <>
+                  <ContextMenu.Item 
+                    className={cn("flex items-center gap-2 px-2 py-1.5 text-[11px] outline-none cursor-pointer rounded", themeClasses.textTertiary, "focus:bg-cyan-500/20 focus:text-white")}
+                    onClick={() => onCreate(node.id, 'file')}
+                  >
+                    <FilePlus size={12} /> New File
+                  </ContextMenu.Item>
+                  <ContextMenu.Item 
+                    className={cn("flex items-center gap-2 px-2 py-1.5 text-[11px] outline-none cursor-pointer rounded", themeClasses.textTertiary, "focus:bg-cyan-500/20 focus:text-white")}
+                    onClick={() => onCreate(node.id, 'folder')}
+                  >
+                    <FolderPlus size={12} /> New Folder
+                  </ContextMenu.Item>
+                </>
+              )}
+            </ContextMenu.Content>
+          </ContextMenu.Portal>
+        </ContextMenu.Root>
       );
     });
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#08080a] border-r border-gray-800/50">
-      <div className="p-3 border-b border-gray-800/50 flex flex-col gap-3 bg-black/20">
+    <div className="h-full flex flex-col">
+      <div className="p-3 border-b border-white/5 flex flex-col gap-3 bg-white/[0.02]">
         <div className="flex items-center justify-between">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Explorer</h3>
-          <div className="flex items-center gap-2">
-            <button onClick={() => onCreate('root', 'folder')} title="New Folder" className="text-gray-600 hover:text-white transition-colors">
-              <FolderPlus size={14} />
-            </button>
-            <button onClick={() => onCreate('root', 'file')} title="New File" className="text-gray-600 hover:text-white transition-colors">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-white/40">Explorer</h3>
+          <div className="flex items-center gap-1">
+            <button onClick={() => onCreate('root', 'file')} title="New File" className={cn("p-1.5 rounded hover:bg-white/10 transition-all", themeClasses.textTertiary, "hover:text-white")}>
               <FilePlus size={14} />
+            </button>
+            <button onClick={() => onCreate('root', 'folder')} title="New Folder" className={cn("p-1.5 rounded hover:bg-white/10 transition-all", themeClasses.textTertiary, "hover:text-white")}>
+              <FolderPlus size={14} />
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="text-gray-600 hover:text-white transition-colors">
+                <button className={cn("p-1.5 rounded hover:bg-white/10 transition-all", themeClasses.textTertiary, "hover:text-white")}>
                   <MoreVertical size={14} />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-[#0d0d10] border-gray-800 text-gray-400 min-w-[150px]">
-                <DropdownMenuItem onClick={onResetWorkspace} className="text-[10px] font-black uppercase tracking-widest gap-2 focus:bg-red-500/10 focus:text-red-400">
+              <DropdownMenuContent align="end" className={cn("bg-[#0B0D17] border-white/10 min-w-[180px] z-[100] shadow-2xl", themeClasses.textTertiary)}>
+                <DropdownMenuItem onClick={() => setIsGitModalOpen(true)} className="text-[11px] gap-2 focus:bg-cyan-500/10 focus:text-white cursor-pointer">
+                  <Github size={12} /> Import Git Repository
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDownloadProject?.()} className="text-[11px] gap-2 focus:bg-cyan-500/10 focus:text-white cursor-pointer">
+                  <Download size={12} /> Download as ZIP
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-white/5" />
+                <DropdownMenuItem onClick={onResetWorkspace} className="text-[11px] gap-2 text-red-400 focus:bg-red-500/10 focus:text-red-300 cursor-pointer">
                   <RefreshCw size={12} /> Reset Workspace
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -161,20 +194,51 @@ export default function FileExplorer({
         
         <button 
           onClick={() => setIsGitModalOpen(true)}
-          className="w-full flex items-center justify-center gap-2 py-2 bg-orange-500/10 border border-orange-500/20 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-orange-500 hover:bg-orange-500/20 transition-all shadow-lg shadow-orange-500/5"
+          className="w-full flex items-center justify-center gap-2 py-2.5 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-cyan-500 hover:bg-cyan-500/20 transition-all duration-300 hover:scale-[1.02] shadow-lg shadow-cyan-500/5 group"
         >
-          <Github size={12} />
+          <Github size={12} className="group-hover:rotate-12 transition-transform" />
           Import Git Repo
         </button>
       </div>
 
       <div className="flex-1 overflow-auto py-2 custom-scrollbar">
         {files.length === 0 ? (
-          <div className="p-6 text-center space-y-3 opacity-40">
-            <Folder size={32} className="mx-auto text-gray-800" />
-            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Workspace Empty</p>
+          <div className="h-full flex flex-col items-center justify-center p-8 opacity-20 space-y-4">
+            <Folder size={48} strokeWidth={1} />
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-center">Empty Workspace</p>
           </div>
-        ) : renderTree(files)}
+        ) : (
+          <ContextMenu.Root>
+            <ContextMenu.Trigger className="h-full w-full">
+              <div className="min-h-full">
+                {renderTree(files)}
+              </div>
+            </ContextMenu.Trigger>
+            <ContextMenu.Portal>
+              <ContextMenu.Content className={cn("min-w-[160px] glass-panel z-[100] p-1 shadow-2xl rounded-lg", themeClasses.bgSecondary, themeClasses.border)}>
+                <ContextMenu.Item 
+                  className={cn("flex items-center gap-2 px-2 py-1.5 text-[11px] outline-none cursor-pointer rounded", themeClasses.textTertiary, "focus:bg-cyan-500/20 focus:text-white")}
+                  onClick={() => onCreate('root', 'file')}
+                >
+                  <FilePlus size={12} /> New File
+                </ContextMenu.Item>
+                <ContextMenu.Item 
+                  className={cn("flex items-center gap-2 px-2 py-1.5 text-[11px] outline-none cursor-pointer rounded", themeClasses.textTertiary, "focus:bg-cyan-500/20 focus:text-white")}
+                  onClick={() => onCreate('root', 'folder')}
+                >
+                  <FolderPlus size={12} /> New Folder
+                </ContextMenu.Item>
+                <ContextMenu.Separator className={cn("h-px my-1", themeClasses.border)} />
+                <ContextMenu.Item 
+                  className={cn("flex items-center gap-2 px-2 py-1.5 text-[11px] outline-none cursor-pointer rounded", themeClasses.textTertiary, "focus:bg-cyan-500/20 focus:text-white")}
+                  onClick={() => setIsGitModalOpen(true)}
+                >
+                  <Github size={12} /> Import Git Repo
+                </ContextMenu.Item>
+              </ContextMenu.Content>
+            </ContextMenu.Portal>
+          </ContextMenu.Root>
+        )}
       </div>
 
       <GitImportModal 

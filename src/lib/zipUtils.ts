@@ -2,10 +2,10 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { FileNode } from '@/types';
 
-export async function downloadProjectAsZip(files: FileNode[], projectName: string) {
+export async function downloadProjectAsZip(files: FileNode[], projectName: string): Promise<void> {
   const zip = new JSZip();
 
-  const addNodeToZip = (node: FileNode, parentPath: string = '') => {
+  const addNodeToZip = (node: FileNode, parentPath: string = ''): void => {
     const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
 
     if (node.type === 'file') {

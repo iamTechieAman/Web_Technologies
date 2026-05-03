@@ -1,17 +1,22 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
-  Send, Loader2, Sparkles, Trash2, Zap,
-  Copy, Check, Bug, Lightbulb, Brain, AlertTriangle,
+  Send, Loader2, Sparkles, Trash2, Zap, BookOpen,
+  Copy, Check, Bug, Lightbulb, Brain, Terminal as TerminalIcon,
+  RefreshCw, ChevronDown, User, Bot, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FileNode, ExecutionResult } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { safeArray, safeString } from '@/lib/safe';
+import { useTheme, useThemeClasses } from '@/context/ThemeContext';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  provider?: string;
 }
 
 interface AIAssistantProps {
@@ -20,265 +25,313 @@ interface AIAssistantProps {
   activeFileName?: string;
   currentStepExplanation?: string;
   lastResult?: ExecutionResult | null;
+  selectedCode?: string;
+  initialPrompt?: string;
+  onClearInitialPrompt?: () => void;
 }
 
-function isInputError(result?: ExecutionResult | null): boolean {
-  if (!result || result.success) return false;
-  const msg = (result.error || result.run?.stderr || '').toLowerCase();
+/**
+ * Typewriter Effect Component
+ */
+function TypewriterContent({ content, speed = 5 }: { content: string; speed?: number }) {
+  const [displayedContent, setDisplayedContent] = useState('');
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (index < content.length) {
+      const timer = setTimeout(() => {
+        setDisplayedContent(prev => prev + content[index]);
+        setIndex(prev => prev + 1);
+      }, speed);
+      return () => clearTimeout(timer);
+    }
+  }, [content, index, speed]);
+
+  // If content was updated externally (e.g. streaming finished), snap to it if we're too far behind
+  useEffect(() => {
+    if (content.length > displayedContent.length + 50) {
+      // Catch up slightly if we're falling behind
+      setDisplayedContent(content.slice(0, displayedContent.length + 20));
+      setIndex(displayedContent.length + 20);
+    }
+  }, [content, displayedContent.length]);
+
   return (
-    msg.includes('nosuchelementexception') ||
-    msg.includes('inputmismatchexception') ||
-    msg.includes('eoferror') ||
-    msg.includes('input required')
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+      {displayedContent}
+    </ReactMarkdown>
   );
 }
 
-const INPUT_TIP =
-  `> ⚠️ **Input Required**
->
-> Your program reads from **standard input** (\`Scanner\`, \`input()\`, \`scanf\`, \`cin\`) but no value was provided.
-
-**Fix:**
-1. Click the **Stdin** button in the editor toolbar.
-2. Type your input (e.g. \`5\` or \`3.14\`).
-3. Press **Run** again.
-
-> 💡 Each whitespace-separated token = one call to \`nextInt()\` / \`input()\` / \`scanf\`.`;
-
-// ── Copy button with toast ────────────────────────────────────────────────────
+const markdownComponents = {
+  code({ node, inline, className, children, ...props }: any) {
+    if (!inline) {
+      return (
+        <div className="relative group/code my-4">
+          <pre className="overflow-x-auto p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-[12px] leading-relaxed">
+            <code {...props}>{children}</code>
+          </pre>
+          <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 transition-opacity">
+            <CopyButton code={String(children)} />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <code className="px-1.5 py-0.5 rounded-md bg-cyan-500/10 text-cyan-500 text-xs font-mono" {...props}>
+        {children}
+      </code>
+    );
+  }
+};
 
 function CopyButton({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(() => {
+  const handleCopy = () => {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setTimeout(() => setCopied(false), 2000);
     });
-  }, [code]);
-
+  };
   return (
     <button
       onClick={handleCopy}
-      title={copied ? 'Copied!' : 'Copy code'}
       className={cn(
-        'absolute right-2 top-2 z-10 flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all',
-        copied
-          ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
-          : 'bg-black/50 hover:bg-orange-500 text-gray-300 hover:text-white opacity-0 group-hover/code:opacity-100',
+        "p-1.5 rounded-lg border transition-all",
+        copied ? "bg-green-500/10 border-green-500/30 text-green-500" : "bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10"
       )}
     >
-      {copied ? <Check size={10} /> : <Copy size={10} />}
-      {copied ? 'Copied!' : 'Copy'}
+      {copied ? <Check size={12} /> : <Copy size={12} />}
     </button>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-
 export default function AIAssistant({
-  files, activeFileCode, activeFileName, currentStepExplanation, lastResult,
+  activeFileCode, activeFileName, currentStepExplanation, lastResult, selectedCode, initialPrompt, onClearInitialPrompt
 }: AIAssistantProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content:
-        "Hello! I'm your **CodeVisualizer AI Mentor**. I've analysed your project and I'm ready to help you master algorithms. 🚀",
-    },
-  ]);
+  const { isDark } = useTheme();
+  const themeClasses = useThemeClasses();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeProvider, setActiveProvider] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
+    if (initialPrompt) {
+      setInput(initialPrompt);
+      if (onClearInitialPrompt) onClearInitialPrompt();
+    }
+  }, [initialPrompt, onClearInitialPrompt]);
 
-  // Auto-inject input tip on input errors
   useEffect(() => {
-    if (!isInputError(lastResult)) return;
-    if (messages.some(m => m.content.includes('Input Required'))) return;
-    setMessages(prev => [...prev, { role: 'assistant', content: INPUT_TIP }]);
-  }, [lastResult]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
 
-  const handleSend = async (customPrompt?: string) => {
-    const text = customPrompt || input;
-    if (!text.trim() || loading) return;
+  const handleSend = async (text?: string) => {
+    const promptText = text || input;
+    if (!promptText.trim() || isLoading) return;
 
-    const userMsg: Message = { role: 'user', content: text.trim() };
-    setMessages(prev => [...prev, userMsg]);
+    const userMsg: Message = { role: 'user', content: promptText };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput('');
-    setLoading(true);
+    setIsLoading(true);
+    setActiveProvider(null);
 
-    const ctx = `Active File (${activeFileName ?? 'untitled'}):\n\`\`\`\n${activeFileCode ?? ''}\n\`\`\`` +
-      (currentStepExplanation ? `\nCurrent Step: ${currentStepExplanation}` : '');
+    const ctx = `Active File: ${activeFileName}\nCode:\n${activeFileCode}\n${selectedCode ? `Selection:\n${selectedCode}` : ''}\n${currentStepExplanation ? `Step Explanation: ${currentStepExplanation}` : ''}`;
 
     try {
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMsg], context: ctx }),
+        body: JSON.stringify({ messages: newMessages, context: ctx }),
       });
 
-      const reader = res.body?.getReader();
+      if (!res.ok) throw new Error('AI request failed');
+      
+      const provider = res.headers.get('X-AI-Provider');
+      setActiveProvider(provider);
+
+      if (!res.body) throw new Error('No streaming body');
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let content = '';
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      let assistantContent = '';
+
+      setMessages(prev => [...prev, { role: 'assistant', content: '', provider: provider || undefined }]);
 
       while (true) {
-        const { done, value } = await reader!.read();
+        const { done, value } = await reader.read();
         if (done) break;
-        content += decoder.decode(value);
+        assistantContent += decoder.decode(value);
         setMessages(prev => {
           const upd = [...prev];
-          upd[upd.length - 1] = { ...upd[upd.length - 1], content };
+          upd[upd.length - 1].content = assistantContent;
           return upd;
         });
       }
-    } catch (err: any) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **Error:** ${err.message}` }]);
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [...prev, { role: 'assistant', content: "⚠️ **Failed to generate response.** Please check your API keys or try again later." }]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const quickActions = [
-    { label: 'Analyze Complexity', icon: <Brain size={12} />, prompt: 'What is the Time and Space complexity of this code?' },
-    { label: 'Optimize',           icon: <Zap size={12} />,   prompt: 'Can you optimize this code for better performance?' },
-    { label: 'Explain',            icon: <Lightbulb size={12} />, prompt: 'Explain this code line-by-line for a beginner.' },
-    { label: 'Debug Help',         icon: <Bug size={12} />,   prompt: 'I am getting an error. Find the fix.' },
-  ];
-
   return (
-    <div className="h-full flex flex-col bg-[#0d0d10] overflow-hidden">
+    <div className={cn("h-full flex flex-col", themeClasses.bgSurface)}>
       {/* Header */}
-      <div className="p-4 border-b border-white/5 bg-black/40 backdrop-blur-xl shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-              <Sparkles size={16} className="text-orange-500" />
-            </div>
-            <div>
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">AI Mentor</h3>
-              <p className="text-[8px] font-bold text-gray-600 uppercase">Context-Aware Guidance</p>
-            </div>
+      <div className={cn("px-4 py-3 border-b flex items-center justify-between", themeClasses.border, isDark ? "bg-white/5" : "bg-gray-50")}>
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-cyan-500/10 rounded-lg">
+            <Sparkles size={14} className="text-cyan-500" />
           </div>
-          <button onClick={() => setMessages([])} className="p-1.5 text-gray-600 hover:text-white transition-colors">
-            <Trash2 size={13} />
+          <span className={cn("text-xs font-black uppercase tracking-widest", themeClasses.text)}>AI Mentor</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => setMessages([])} 
+            className={cn("p-1.5 rounded-md hover:bg-white/10 transition-colors", themeClasses.textTertiary)}
+            title="Clear Chat"
+          >
+            <Trash2 size={14} />
           </button>
         </div>
-
-        {/* Input-error banner */}
-        {isInputError(lastResult) && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="mt-3 p-2.5 bg-yellow-500/10 border border-yellow-500/30 rounded-xl flex items-start gap-2"
-          >
-            <AlertTriangle size={13} className="text-yellow-500 shrink-0 mt-0.5" />
-            <p className="text-[9px] font-bold text-yellow-200/80 leading-relaxed">
-              Your program needs input. Enter values in the{' '}
-              <span className="text-yellow-400 font-black">Stdin</span> box and re-run.
-            </p>
-          </motion.div>
-        )}
       </div>
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-        <AnimatePresence mode="popLayout">
+      {/* Chat Area */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar bg-grid-pattern">
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40">
+            <Brain size={48} className={themeClasses.textTertiary} />
+            <p className={cn("mt-4 text-xs font-bold uppercase tracking-widest", themeClasses.textSecondary)}>AI Mentor is ready</p>
+            <p className={cn("mt-2 text-[10px] max-w-[200px] leading-relaxed", themeClasses.textTertiary)}>Ask about your code, Big-O complexity, or logic visualizer.</p>
+          </div>
+        )}
+
+        <AnimatePresence initial={false}>
           {messages.map((m, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}
+              className={cn("flex flex-col gap-2", m.role === 'user' ? "items-end" : "items-start")}
             >
-              <div
-                className={cn(
-                  'max-w-[88%] px-4 py-3 rounded-2xl text-sm leading-relaxed',
-                  m.role === 'user'
-                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20 rounded-br-sm'
-                    : 'glass-card border-white/5 rounded-bl-sm',
+              <div className="flex items-center gap-2 px-1">
+                {m.role === 'assistant' ? (
+                  <>
+                    <Bot size={12} className="text-cyan-500" />
+                    <span className={cn("text-[9px] font-black uppercase tracking-widest text-cyan-500/60")}>AI Mentor {m.provider && `• ${m.provider}`}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className={cn("text-[9px] font-black uppercase tracking-widest text-purple-500/60")}>You</span>
+                    <User size={12} className="text-purple-500" />
+                  </>
                 )}
-              >
-                <div className="prose prose-invert prose-sm max-w-none">
-                  <ReactMarkdown
-                    components={{
-                      code({ node, inline, className, children, ...props }: any) {
-                        const lang = /language-(\w+)/.exec(className || '')?.[1];
-                        const codeStr = String(children).replace(/\n$/, '');
-
-                        if (!inline && lang) {
-                          return (
-                            <div className="relative group/code my-2">
-                              <CopyButton code={codeStr} />
-                              <pre className={cn('rounded-xl overflow-x-auto', className)} {...props}>
-                                <code>{children}</code>
-                              </pre>
-                            </div>
-                          );
-                        }
-                        return (
-                          <code
-                            className="bg-orange-500/10 text-orange-400 px-1 py-0.5 rounded text-xs font-mono"
-                            {...props}
-                          >
-                            {children}
-                          </code>
-                        );
-                      },
-                    }}
-                  >
+              </div>
+              <div className={cn(
+                "px-4 py-3 rounded-2xl text-[13px] leading-relaxed shadow-sm ring-1",
+                m.role === 'user' 
+                  ? "bg-purple-500/10 border-purple-500/20 text-purple-200 ring-purple-500/5 ml-12" 
+                  : cn("border max-w-[90%] ring-white/5", themeClasses.bgSecondary, themeClasses.border, themeClasses.textSecondary)
+              )}>
+                {m.role === 'assistant' && i === messages.length - 1 && isLoading ? (
+                  <TypewriterContent content={m.content} />
+                ) : (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                     {m.content}
                   </ReactMarkdown>
-                </div>
+                )}
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
-        {loading && (
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-600 animate-pulse pl-1">
-            <Loader2 size={11} className="animate-spin" /> Thinking…
+
+        {isLoading && !messages[messages.length-1]?.content && (
+          <div className="flex flex-col gap-2 items-start animate-pulse">
+            <div className="flex items-center gap-2 px-1">
+              <Bot size={12} className="text-cyan-500" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-cyan-500/60">Thinking...</span>
+            </div>
+            <div className={cn("w-32 h-10 rounded-2xl border flex items-center justify-center", themeClasses.bgSecondary, themeClasses.border)}>
+              <Loader2 size={16} className="animate-spin text-cyan-500/50" />
+            </div>
           </div>
         )}
       </div>
 
-      {/* Quick actions + input */}
-      <div className="p-4 bg-black/40 backdrop-blur-xl border-t border-white/5 shrink-0">
-        <div className="grid grid-cols-2 gap-1.5 mb-3">
-          {quickActions.map((a, i) => (
+      {/* Suggested Actions */}
+      {messages.length === 0 && !isLoading && (
+        <div className={cn("px-4 py-3 border-t flex gap-2 overflow-x-auto no-scrollbar", themeClasses.border)}>
+          {[
+            { label: 'Explain Code', prompt: 'Can you explain what this code does in simple terms?', icon: <BookOpen size={10} /> },
+            { label: 'Complexity', prompt: 'What is the time and space complexity of this code?', icon: <Zap size={10} /> },
+            { label: 'Find Bugs', prompt: 'Are there any potential bugs or edge cases in this code?', icon: <Bug size={10} /> }
+          ].map((act, i) => (
             <button
               key={i}
-              onClick={() => handleSend(a.prompt)}
-              className="flex items-center gap-2 p-2 glass-panel rounded-xl text-left hover:border-orange-500/30 group transition-all"
+              onClick={() => handleSend(act.prompt)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-tight transition-all whitespace-nowrap",
+                isDark ? "bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10" : "bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200"
+              )}
             >
-              <div className="p-1 bg-white/5 rounded-lg text-gray-600 group-hover:text-orange-500 transition-colors shrink-0">
-                {a.icon}
-              </div>
-              <span className="text-[8px] font-black uppercase tracking-widest text-gray-500 group-hover:text-white leading-tight">
-                {a.label}
-              </span>
+              {act.icon}
+              {act.label}
             </button>
           ))}
         </div>
-        <div className="relative">
-          <input
+      )}
+
+      {/* Provider Indicator */}
+      {activeProvider && (
+        <div className="px-4 pt-2">
+          <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest opacity-40">
+            <Zap size={10} className="text-cyan-500" />
+            <span>Powered by {activeProvider}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Input Area */}
+      <div className={cn("p-4 border-t", themeClasses.border)}>
+        <form 
+          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-2xl border transition-all focus-within:ring-2 focus-within:ring-cyan-500/20",
+            isDark ? "bg-black/20 border-white/10 focus-within:border-cyan-500/50" : "bg-gray-50 border-gray-200 focus-within:border-blue-500/50"
+          )}
+        >
+          <input 
             type="text"
             value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder="Ask your mentor…"
-            className="w-full bg-white/[0.03] border border-white/5 rounded-2xl pl-4 pr-11 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500/50 transition-all"
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask your mentor anything..."
+            className="flex-1 bg-transparent border-none focus:outline-none text-sm placeholder:text-gray-600"
+            disabled={isLoading}
           />
-          <button
-            onClick={() => handleSend()}
-            disabled={!input.trim() || loading}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-all shadow-lg disabled:opacity-40"
+          <button 
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className={cn(
+              "p-2 rounded-xl transition-all",
+              input.trim() ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/20" : "text-gray-600 cursor-not-allowed"
+            )}
           >
-            <Send size={13} />
+            {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
-        </div>
+        </form>
+        {messages.length > 0 && !isLoading && messages[messages.length-1].content.includes("⚠️") && (
+          <button 
+            onClick={() => handleSend(messages[messages.length-2].content)}
+            className="mt-3 w-full py-2 rounded-xl border border-red-500/30 bg-red-500/5 text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-red-500/10 transition-all"
+          >
+            <RefreshCw size={12} /> Retry Response
+          </button>
+        )}
       </div>
     </div>
   );

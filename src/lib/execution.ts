@@ -1,6 +1,7 @@
 import { SupportedLanguage, ExecutionResult } from '@/types';
 import { LANGUAGES } from './utils';
 import { preprocessCode } from './preprocessor';
+import { safeAsync, safeString } from './safe';
 
 const PISTON_URL = 'https://emkc.org/api/v2/piston/execute';
 const JUDGE0_CE_URL = 'https://ce.judge0.com';
@@ -41,9 +42,6 @@ async function executeWithPiston(
     stdin,          // ← always a string, never undefined
   };
 
-  console.log('[lib/piston] ▶ language:', language, '| version:', cfg.pistonVersion);
-  console.log('[lib/piston] ▶ stdin:', JSON.stringify(payload.stdin));
-
   const res = await fetch(PISTON_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -52,14 +50,12 @@ async function executeWithPiston(
 
   if (!res.ok) throw new Error(`Piston returned ${res.status}: ${await res.text()}`);
 
-  const data = await res.json();
-  const run = data.run;
+  const data = await safeAsync<Record<string, any> | null>(() => res.json(), null);
+  const run = data?.run;
   if (!run) throw new Error('Piston returned no run data');
 
   const stdout = run.stdout || '';
   const stderr = run.stderr || '';
-
-  console.log('[lib/piston] ✓ exit code:', run.code, '| stdout:', stdout.slice(0, 80));
 
   if (run.code !== 0 && run.code !== null) {
     let error = stderr || run.output || 'Execution failed';
@@ -105,8 +101,6 @@ async function executeWithJudge0(
     stdin,          // ← always a string
   };
 
-  console.log('[lib/judge0] ▶ stdin:', JSON.stringify(payload.stdin));
-
   const submitRes = await fetch(`${JUDGE0_CE_URL}/submissions?base64_encoded=false&wait=true`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -115,22 +109,22 @@ async function executeWithJudge0(
 
   if (!submitRes.ok) throw new Error(`Judge0 CE returned ${submitRes.status}`);
 
-  const data = await submitRes.json();
-  const stdout = data.stdout || '';
-  const stderr = data.stderr || '';
-  const compileErr = data.compile_output || '';
+  const data = await safeAsync<Record<string, any> | null>(() => submitRes.json(), null);
+  const stdout = safeString(data?.stdout);
+  const stderr = safeString(data?.stderr);
+  const compileErr = safeString(data?.compile_output);
 
-  if (data.status?.id >= 6) {
-    let error = stderr || compileErr || data.status?.description || 'Execution failed';
+  if ((data?.status?.id ?? 0) >= 6) {
+    let error = stderr || compileErr || safeString(data?.status?.description, 'Execution failed');
     if (isInputStarvedError(error, language)) error = inputRequiredMessage(error);
-    return { success: false, error, engine: 'judge0', executionTimeMs: parseFloat(data.time || '0') * 1000 };
+    return { success: false, error, engine: 'judge0', executionTimeMs: parseFloat(safeString(data?.time, '0')) * 1000 };
   }
 
   return {
     success: true,
-    run: { stdout, stderr, code: data.exit_code ?? null, signal: data.exit_signal ?? null, output: stdout + (stderr ? '\n' + stderr : '') },
+    run: { stdout, stderr, code: data?.exit_code ?? null, signal: data?.exit_signal ?? null, output: stdout + (stderr ? '\n' + stderr : '') },
     engine: 'judge0',
-    executionTimeMs: parseFloat(data.time || '0') * 1000,
+    executionTimeMs: parseFloat(safeString(data?.time, '0')) * 1000,
   };
 }
 
@@ -138,7 +132,21 @@ async function executeWithJudge0(
 // Main entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LOCAL_BACKEND_URL = 'http://localhost:3001/run-code';
+const LOCAL_BACKEND_URL = 'http://localhost:5001/run-code';
+const NON_EXECUTABLE_LANGUAGES = new Set<SupportedLanguage>([
+  'html',
+  'css',
+  'json',
+  'xml',
+  'yaml',
+  'markdown',
+  'dockerfile',
+  'nginx',
+  'vue',
+  'svelte',
+  'terraform',
+  'kubernetes',
+]);
 
 export async function executeCode(
   language: SupportedLanguage,
@@ -148,13 +156,22 @@ export async function executeCode(
   // ① Normalise stdin — ALWAYS a non-undefined string
   const normalisedStdin: string = typeof stdin === 'string' ? stdin : '';
 
-  console.log('[lib/executeCode] ▶ language:', language);
-  console.log('[lib/executeCode] ▶ stdin (normalised):', JSON.stringify(normalisedStdin));
-
   // ② Pre-process code (strip package, rename class to Main, inject headers)
   const effectiveCode = preprocessCode(code, language);
 
-  console.log('[lib/executeCode] ▶ effectiveCode (first 150 chars):', effectiveCode.slice(0, 150).replace(/\n/g, '↵'));
+  if (NON_EXECUTABLE_LANGUAGES.has(language)) {
+    return {
+      success: true,
+      engine: 'local',
+      run: {
+        stdout: `${language.toUpperCase()} files are preview/analyze files in CodeVisualizer. Use Live Preview or the AI tools for this file type.`,
+        stderr: '',
+        code: 0,
+        signal: null,
+        output: `${language.toUpperCase()} preview/analyze mode: no remote runtime is required.`,
+      },
+    };
+  }
 
   // ③ Try local dev server (optional, fast)
   try {
@@ -164,13 +181,18 @@ export async function executeCode(
       body: JSON.stringify({ language, code: effectiveCode, stdin: normalisedStdin }),
     });
     if (res.ok) {
-      const d = await res.json();
-      console.log('[lib/executeCode] ✓ local backend responded');
+      const d = await safeAsync<Record<string, any> | null>(() => res.json(), null);
       return {
-        success: !d.error,
-        run: { stdout: d.output, stderr: d.error, code: d.error ? 1 : 0, signal: null, output: d.output + (d.error ? '\n' + d.error : '') },
+        success: !d?.error,
+        run: {
+          stdout: safeString(d?.output),
+          stderr: safeString(d?.error),
+          code: d?.error ? 1 : 0,
+          signal: null,
+          output: safeString(d?.output) + (d?.error ? '\n' + safeString(d?.error) : ''),
+        },
         engine: 'local',
-        executionTimeMs: parseInt(d.time || '0'),
+        executionTimeMs: parseInt(safeString(d?.time, '0')),
       };
     }
   } catch { /* no local server — fall through */ }

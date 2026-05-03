@@ -25,7 +25,6 @@ export interface IExtensionContext {
 export class ExtensionManager {
   private static instance: ExtensionManager;
   private commands = new Map<string, (...args: any[]) => any>();
-  private extensions = new Map<string, ExtensionManifest>();
 
   private constructor() {}
 

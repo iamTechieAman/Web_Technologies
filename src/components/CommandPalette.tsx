@@ -1,10 +1,7 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Command } from 'cmdk';
-import { 
-  Play, Download, Trash2, FilePlus, FolderPlus, 
-  Search, Terminal as TerminalIcon, Sparkles, Activity
-} from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -66,7 +63,7 @@ export default function CommandPalette({ isOpen, onClose, actions }: CommandPale
                     action.onSelect();
                     onClose();
                   }}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer aria-selected:bg-orange-500 aria-selected:text-white transition-all group"
+                  className="flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer aria-selected:bg-cyan-500 aria-selected:text-white transition-all group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-gray-500 group-aria-selected:text-white">

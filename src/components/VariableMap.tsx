@@ -50,7 +50,7 @@ export default function VariableMap({ variables, prevVariables = {} }: VariableM
                 </div>
                 <div className={cn(
                   "text-[11px] font-mono font-bold",
-                  isChanged || isNew ? "text-orange-400" : "text-gray-500"
+                  isChanged || isNew ? "text-cyan-400" : "text-gray-500"
                 )}>
                   {JSON.stringify(value)}
                 </div>
