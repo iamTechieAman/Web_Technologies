@@ -6,8 +6,7 @@ const isPublicRoute = createRouteMatcher(['/', '/api/webhooks(.*)']);
 export default process.env.CLERK_SECRET_KEY
   ? clerkMiddleware(async (auth, req) => {
       if (!isPublicRoute(req)) {
-        const authObj = await auth();
-        (authObj as any).protect();
+        await auth.protect();
       }
     })
   : function middleware() {
