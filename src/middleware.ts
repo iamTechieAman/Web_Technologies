@@ -4,8 +4,11 @@ import { NextResponse } from 'next/server';
 const isPublicRoute = createRouteMatcher(['/', '/api/webhooks(.*)']);
 
 export default process.env.CLERK_SECRET_KEY
-  ? clerkMiddleware((auth, req) => {
-      if (!isPublicRoute(req)) auth().protect();
+  ? clerkMiddleware(async (auth, req) => {
+      if (!isPublicRoute(req)) {
+        const authObj = await auth();
+        (authObj as any).protect();
+      }
     })
   : function middleware() {
       return NextResponse.next();
