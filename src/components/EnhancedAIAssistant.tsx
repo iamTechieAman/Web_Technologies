@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { FileNode, ExecutionResult, SupportedLanguage } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getLanguageConfig } from '@/lib/languageConfigs';
-import { useThemeClasses } from '@/context/ThemeContext';
+import { useTheme, useThemeClasses } from '@/context/ThemeContext';
 import { AI_TOOLS, AIToolMode } from '@/lib/aiTools';
 
 interface Message {
