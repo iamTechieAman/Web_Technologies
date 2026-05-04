@@ -108,8 +108,16 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
           {copied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
         </button>
       </div>
-      <pre className="bg-black/40 border border-white/5 rounded-xl p-4 overflow-x-auto text-sm custom-scrollbar">
-        <code className={`language-${language} font-mono`}>{code}</code>
+      <pre className={cn(
+        "border rounded-xl p-4 overflow-x-auto text-sm custom-scrollbar",
+        "bg-black/40 border-white/5",
+        "dark:bg-black/40 dark:border-white/5",
+        "light:bg-gray-100 light:border-gray-200"
+      )}>
+        <code className={cn(
+          `language-${language} font-mono`,
+          "text-inherit"
+        )}>{code}</code>
       </pre>
     </div>
   );
@@ -153,10 +161,18 @@ const MessageItem = React.memo(({
       <div className={cn(
         "max-w-[85%] min-w-0 rounded-3xl p-5 relative transition-all duration-300 overflow-hidden",
         message.role === 'user'
-          ? "bg-cyan-500/10 border border-cyan-500/20 text-white rounded-tr-none"
-          : "bg-white/[0.03] border border-white/5 text-gray-200 backdrop-blur-md rounded-tl-none hover:bg-white/[0.05]"
+          ? "bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 rounded-tr-none"
+          : cn(
+              "border backdrop-blur-md rounded-tl-none hover:bg-opacity-80 transition-colors",
+              "bg-white/[0.03] border-white/5 text-gray-200",
+              "dark:bg-white/[0.03] dark:border-white/5 dark:text-gray-200",
+              "light:bg-gray-100 light:border-gray-200 light:text-gray-800"
+            )
       )}>
-        <div className="text-[13px] leading-relaxed prose prose-invert prose-headings:text-white prose-p:text-inherit prose-code:text-cyan-400 prose-pre:bg-transparent max-w-none break-words">
+        <div className={cn(
+          "text-[13px] leading-relaxed prose prose-p:text-inherit prose-code:text-cyan-500 dark:prose-code:text-cyan-400 prose-pre:bg-transparent max-w-none break-words",
+          "dark:prose-invert prose-headings:text-inherit"
+        )}>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
@@ -170,7 +186,12 @@ const MessageItem = React.memo(({
                 }
                 
                 return (
-                  <code className="bg-white/5 px-2 py-0.5 rounded-lg text-cyan-400 font-mono text-[12px] border border-white/5" {...props}>
+                  <code className={cn(
+                    "px-2 py-0.5 rounded-lg font-mono text-[12px] border",
+                    "bg-white/5 text-cyan-400 border-white/5",
+                    "dark:bg-white/5 dark:text-cyan-400 dark:border-white/5",
+                    "light:bg-gray-200/50 light:text-cyan-600 light:border-gray-300"
+                  )} {...props}>
                     {children}
                   </code>
                 );
@@ -492,22 +513,24 @@ The app also auto-detects language from file name and code content.`,
     }
   };
 
+  const { isDark } = useTheme();
+  
   return (
-    <div className={cn("h-full flex flex-col bg-[#0B0D17] border-l border-white/5", themeClasses.bg)}>
+    <div className={cn("h-full flex flex-col border-l", themeClasses.bg, themeClasses.border)}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/[0.02]">
+      <div className={cn("flex items-center justify-between p-4 border-b", themeClasses.bgSecondary, themeClasses.border)}>
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-[#A855F7]/20 rounded-xl text-[#A855F7]">
+          <div className={cn("p-2 rounded-xl", isDark ? "bg-[#A855F7]/20 text-[#A855F7]" : "bg-purple-100 text-purple-600")}>
             <Sparkles size={18} />
           </div>
           <div>
-            <h2 className="text-sm font-black uppercase tracking-tighter text-white">AI Mentor</h2>
-            <p className="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Always Online • GPT-4o</p>
+            <h2 className={cn("text-sm font-black uppercase tracking-tighter", themeClasses.text)}>AI Mentor</h2>
+            <p className={cn("text-[8px] font-bold uppercase tracking-[0.2em]", themeClasses.textTertiary)}>Always Online • GPT-4o</p>
           </div>
         </div>
         <button 
           onClick={handleClear}
-          className="p-2 hover:bg-white/5 rounded-xl text-white/30 hover:text-red-400 transition-all"
+          className={cn("p-2 rounded-xl transition-all", themeClasses.textTertiary, "hover:text-red-400 hover:bg-red-500/10")}
           title="Clear Conversation"
         >
           <Trash2 size={16} />
@@ -519,13 +542,13 @@ The app also auto-detects language from file name and code content.`,
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center p-8 text-center">
             <div className="relative mb-6">
-              <div className="absolute inset-0 bg-cyan-500/20 blur-2xl rounded-full animate-pulse" />
-              <div className="relative p-6 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl">
+              <div className={cn("absolute inset-0 blur-2xl rounded-full animate-pulse", isDark ? "bg-cyan-500/20" : "bg-cyan-500/10")} />
+              <div className={cn("relative p-6 border rounded-3xl backdrop-blur-xl", themeClasses.bgSecondary, themeClasses.border)}>
                 <Brain size={48} className="text-cyan-500" />
               </div>
             </div>
-            <h3 className="text-lg font-black uppercase tracking-tighter text-white mb-2">Hello, I'm your Mentor</h3>
-            <p className="text-xs text-white/40 max-w-[200px] leading-relaxed">
+            <h3 className={cn("text-lg font-black uppercase tracking-tighter mb-2", themeClasses.text)}>Hello, I'm your Mentor</h3>
+            <p className={cn("text-xs max-w-[200px] leading-relaxed", themeClasses.textTertiary)}>
               Ask me anything about your code, algorithms, or even the weather. I'm here to help!
             </p>
           </div>
@@ -567,7 +590,13 @@ The app also auto-detects language from file name and code content.`,
               key={action.id}
               onClick={() => handleQuickAction(action as any)}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30"
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 border rounded-xl whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-30",
+                themeClasses.bgSecondary,
+                themeClasses.border,
+                themeClasses.textTertiary,
+                "hover:text-cyan-500 hover:border-cyan-500/30"
+              )}
             >
               <action.icon size={12} className="text-cyan-500" />
               {action.name}
@@ -585,7 +614,13 @@ The app also auto-detects language from file name and code content.`,
             onKeyDown={handleKeyDown}
             placeholder="Type your message..."
             rows={1}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-4 pr-14 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50 transition-all resize-none custom-scrollbar"
+            className={cn(
+              "w-full border rounded-2xl py-4 pl-4 pr-14 text-sm transition-all resize-none custom-scrollbar focus:outline-none focus:ring-1 focus:ring-cyan-500/30",
+              themeClasses.bgSecondary,
+              themeClasses.border,
+              themeClasses.text,
+              "placeholder:opacity-50"
+            )}
           />
           <button
             onClick={() => handleSend()}
@@ -594,13 +629,13 @@ The app also auto-detects language from file name and code content.`,
               "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-xl transition-all",
               input.trim() 
                 ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20 hover:scale-105" 
-                : "bg-white/5 text-white/20"
+                : cn("bg-opacity-50", themeClasses.bgHover, themeClasses.textTertiary)
             )}
           >
             {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
           </button>
         </div>
-        <p className="mt-2 text-[8px] text-center font-black uppercase tracking-[0.3em] text-white/10">
+        <p className={cn("mt-2 text-center text-[8px] font-black uppercase tracking-[0.3em]", themeClasses.textTertiary, "opacity-50")}>
           Powered by GPT-4o • Shift + Enter for new line
         </p>
       </div>

@@ -16,7 +16,7 @@ import { preprocessCode } from '@/lib/preprocessor';
 import { detectLanguageFromCode } from '@/lib/languageConfigs';
 
 const IDELoading = ({ label }: { label: string }) => (
-  <div className="h-full w-full flex flex-col items-center justify-center bg-[#0B0D17] p-8 animate-in fade-in duration-500">
+  <div className="h-full w-full flex flex-col items-center justify-center bg-[#0B0D17] dark:bg-[#0B0D17] light:bg-white p-8 animate-in fade-in duration-500">
     <div className="relative w-16 h-16 mb-6">
       <div className="absolute inset-0 border-4 border-cyan-500/10 rounded-xl" />
       <div className="absolute inset-0 border-4 border-t-cyan-500 rounded-xl animate-spin" />

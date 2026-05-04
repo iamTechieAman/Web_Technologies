@@ -45,13 +45,13 @@ export default function StatusBar({
               ? "bg-green-400 ring-green-400/20 animate-pulse shadow-[0_0_10px_rgba(74,222,128,0.5)]" 
               : "bg-gray-600 ring-gray-600/10"
           )} />
-          <span className={cn("transition-colors", isExecuting ? "text-white" : "group-hover:text-white")}>
+          <span className={cn("transition-colors", isExecuting ? "text-white" : cn("group-hover:text-cyan-500", themeClasses.textTertiary))}>
             {isConnected ? 'System Live' : 'Offline Engine'}
           </span>
         </div>
 
         {/* Git Branch */}
-        <div className={cn("flex items-center gap-2 cursor-pointer transition-colors px-1 group", isExecuting ? "text-white" : "hover:text-white")}>
+        <div className={cn("flex items-center gap-2 cursor-pointer transition-colors px-1 group", isExecuting ? "text-white" : cn("hover:text-cyan-500", themeClasses.textTertiary))}>
           <GitBranch size={12} className="opacity-40 group-hover:opacity-100 transition-opacity" />
           <span>production</span>
         </div>
@@ -81,7 +81,7 @@ export default function StatusBar({
 
       <div className="flex items-center gap-6 h-full">
         {/* Editor Cursor Position */}
-        <div className={cn("flex items-center gap-4", isExecuting ? "text-white" : "text-white/40")}>
+        <div className={cn("flex items-center gap-4", isExecuting ? "text-white" : themeClasses.textTertiary)}>
           <div className="flex items-center gap-1">
             <span className="opacity-40">Ln</span> {line}
           </div>
@@ -93,7 +93,7 @@ export default function StatusBar({
         <div className={cn("w-px h-3", isExecuting ? "bg-white/20" : themeClasses.border)} />
 
         {/* Language Selection */}
-        <div className={cn("flex items-center gap-2 cursor-pointer transition-colors group", isExecuting ? "text-white" : "hover:text-white")}>
+        <div className={cn("flex items-center gap-2 cursor-pointer transition-colors group", isExecuting ? "text-white" : cn("hover:text-cyan-500", themeClasses.textTertiary))}>
           <Code2 size={12} className={cn("transition-colors", isExecuting ? "text-white" : "text-cyan-500/60 group-hover:text-cyan-400")} strokeWidth={3} />
           <span>{language}</span>
         </div>

@@ -78,7 +78,7 @@ export default function VSCodeSidebar({
               className={cn(
                 "flex items-center gap-1 px-2 py-1 cursor-pointer transition-all group",
                 themeClasses.textSecondary,
-                "hover:text-white hover:bg-white/5"
+                "hover:text-cyan-500 hover:bg-cyan-500/5"
               )}
               style={{ paddingLeft: `${depth * 12 + 8}px` }}
               onClick={() => toggleFolder(node.id)}
@@ -101,7 +101,7 @@ export default function VSCodeSidebar({
             "flex items-center gap-1 px-2 py-1 cursor-pointer transition-all group",
             isActive 
               ? cn(themeClasses.accentBg, themeClasses.accent)
-              : cn(themeClasses.textSecondary, "hover:text-white hover:bg-white/5")
+              : cn(themeClasses.textSecondary, "hover:text-cyan-500 hover:bg-cyan-500/5")
           )}
           style={{ paddingLeft: `${depth * 12 + 8}px` }}
           onClick={() => onFileClick(node.id)}

@@ -49,7 +49,7 @@ export default function VSCodeActivityBar({ activeView, onViewChange }: Activity
                 "w-10 h-10 flex items-center justify-center rounded-xl transition-all relative group overflow-hidden",
                 isActive 
                   ? cn(themeClasses.accentBg, themeClasses.accent, "shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]")
-                  : cn(themeClasses.textTertiary, "hover:text-white hover:bg-white/5 active:scale-95")
+                  : cn(themeClasses.textTertiary, "hover:text-cyan-500 hover:bg-cyan-500/5 active:scale-95")
               )}
               title={item.label}
             >
@@ -72,8 +72,8 @@ export default function VSCodeActivityBar({ activeView, onViewChange }: Activity
       <div className="flex flex-col gap-3 w-full px-2">
         <button
           className={cn(
-            "w-10 h-10 flex items-center justify-center rounded-xl transition-all group hover:bg-white/5 active:scale-95",
-            themeClasses.textTertiary, "hover:text-white"
+            "w-10 h-10 flex items-center justify-center rounded-xl transition-all group hover:bg-cyan-500/5 active:scale-95",
+            themeClasses.textTertiary, "hover:text-cyan-500"
           )}
           title="Settings"
         >
@@ -82,8 +82,8 @@ export default function VSCodeActivityBar({ activeView, onViewChange }: Activity
         
         <button
           className={cn(
-            "w-10 h-10 flex items-center justify-center rounded-xl transition-all group hover:bg-white/5 active:scale-95",
-            themeClasses.textTertiary, "hover:text-white"
+            "w-10 h-10 flex items-center justify-center rounded-xl transition-all group hover:bg-cyan-500/5 active:scale-95",
+            themeClasses.textTertiary, "hover:text-cyan-500"
           )}
           title="Account"
         >
